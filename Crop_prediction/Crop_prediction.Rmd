@@ -1,0 +1,175 @@
+---
+title: "Prédictions de cultures"
+author: "Elise Lonchampt, Emma Da Silva, Maud Lesage"
+date: "2024-10-12"
+output: html_document
+---
+
+```{r importation jeu de données}
+dta <- read.table('Crop_recommendation.csv', sep = ';', header = TRUE, stringsAsFactors = TRUE)
+summary(dta)
+```
+# Prédictions avec l'entièreté des cultures
+
+## Modèle de régression logistique 
+
+```{r GLM}
+require(class)
+require(caret)
+trainIndex <- createDataPartition(dta$label, p = 0.75, list = FALSE)
+
+data.train <- dta[trainIndex, ]
+data.test <- dta[-trainIndex, ]
+
+ctrl <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
+
+# Entraîner le modèle glm avec la validation croisée
+glm_model <- train(label ~ ., data = data.train, method = "multinom", trControl = ctrl)
+
+# Prédire
+pred_glm <- predict(glm_model, newdata = data.test)
+
+# Accuracy
+conf_matrix <- confusionMatrix(pred_glm, data.test$label)
+confusionMatrix(pred_glm, data.test$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy))
+```
+## Modèle KNN
+
+```{r Knn}
+tuneGrid <- expand.grid(k = 1:20)
+
+# Entraîner le modèle Knn avec la validation croisée
+knn_model <- train(label ~ .,
+                   data = data.train, 
+                   method = "knn", 
+                   tuneGrid = tuneGrid, ## test les valeurs de k de 1 à 20
+                   trControl = ctrl)
+
+# Meilleur k trouvé
+best_k <- knn_model$bestTune
+print(best_k)
+
+# Prédire avec le meilleur modèle
+pred_knn <- predict(knn_model, newdata = data.test)
+
+# Accuracy
+conf_matrix <- confusionMatrix(pred_knn, data.test$label)
+confusionMatrix(pred_knn, data.test$label)
+accuracy <- conf_matrix$overall['Accuracy']
+```
+
+# Prédictions avec des sous-ensembles de cultures
+
+## Classification ascendante hiérarchique
+
+Une classification ascendante hiérarchique est utilisée pour déterminer quelles cultures sont similaires et quelles cultures sont différentes. L'objectif est par la suite de choisir deux sous-ensembles de cultures pour évaluer la performance de notre modèle dans différents cas d'échantillonnage.
+
+```{r CAH}
+library (FactoMineR)
+
+res_PCA <- PCA(dta[,-8], scale.unit = TRUE)
+
+res_HCPC <- HCPC(res_PCA, nb.clust = 3) ## 3 clusters
+
+dta2 <- dta
+dta2$clust <- res_HCPC$data.clust$clust
+table_clusters_label <- table(dta2$label, dta2$clust)
+print(table_clusters_label)
+## Cluster 1 = Banana, Coconut, Coffee, Cotton, Jute, Maize, Muskmelon, Orange, Papaya, Pomegrade, Rice, Watermelon
+## Cluster 2 = Blackgram, Chickpea, Kidneybeans, Lentil, Mango, Mothbeans, Mungbean, Pigeonpeas
+## Cluster 3 = Apple, Grapes
+
+res_HCPC$desc.var$quanti$`1`
+res_HCPC$desc.var$quanti$`2`
+res_HCPC$desc.var$quanti$`3` 
+
+resPCA2 <- PCA(dta[,-9], scale.unit = TRUE, quali.sup = 8)
+plot(resPCA2,habillage=8,label="quali")
+```
+Nous obtenons ici trois cluster différents. Le premier cluster inclut les fruits tropicaux et les cultures de rente, tels que la banane, la noix de coco, et le café, qui prospèrent dans des conditions de sol humide, riche en azote, avec des précipitations importantes. Ces cultures sont adaptées à des climats tropicaux où l'abondance d'eau et un sol bien drainé sont essentiels pour une croissance optimale. Le deuxième cluster regroupe la mangue et les légumineuses comme les pois chiches, les haricots mungo. Ces plantes préfèrent un sol relativement pauvre en azote, bien drainé, et faiblement humide. Le dernier cluster comprend des cultures tempérées comme la pomme et le raisin, qui préfèrent un sol riche en potassium et en phosphore, mais pauvre en azote.
+
+## Evaluation des modèles dans le cas d'un sous-ensemble de cultures similaires
+
+Nous avons sélectionné 5 cultures très similaires pour évaluer la capacité de prédiction de nos modèles dans le cas de situations où les cultures présentent des caractéristiques agronomiques et environnementales proches. L'objectif est de vérifier si les modèles peuvent encore discriminer correctement dans des contextes où les variations entre les cultures sont faibles, simulant ainsi des choix agricoles plus délicats à effectuer. Pour ce faire nous avons choisi les cultures suivantes : le jute, le riz, le maïs, le cotton et le café. Ces cultures prospèrent dans les climats tropicaux chauds et humides.
+
+```{r Cultures similaires}
+# Modèle de régression logistique
+
+cultures_similaires <- c("coffee", "cotton", "maize", "rice", "jute")
+
+filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
+filtered_test_data <- droplevels(filtered_test_data)
+
+# Prédiction avec le sous-ensemble de culture
+pred_glm_filtered <- predict(glm_model, newdata = filtered_test_data)
+
+# Matrice de confusion et accuracy
+pred_glm_filtered <- factor(pred_glm_filtered, levels = levels(filtered_test_data$label))
+conf_matrix_filtered <- confusionMatrix(pred_glm_filtered, filtered_test_data$label)
+print(conf_matrix_filtered)
+accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+
+# Modèle KNN
+
+cultures_similaires <- c("coffee", "cotton", "maize", "rice", "jute")
+
+filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
+filtered_test_data <- droplevels(filtered_test_data)
+
+# Prédiction avec le sous-ensemble de culture
+pred_knn_filtered <- predict(knn_model, newdata = filtered_test_data)
+
+# Matrice de confusion et accuracy
+pred_knn_filtered <- factor(pred_knn_filtered, levels = levels(filtered_test_data$label))
+conf_matrix_filtered <- confusionMatrix(pred_knn_filtered, filtered_test_data$label)
+print(conf_matrix_filtered)
+accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+
+# Modèle Random Forest
+```
+
+Nous pouvons constater que les accuracy liés aux modèles ont diminué. 
+
+En examinant plus en attentivement la matrice de confusion pour le modèle KNN, on observe quelques erreurs de prédiction, en particulier pour les classes café, jute, et riz. Bien que ces erreurs restent limitées, la classe riz est confondue avec la classe jute dans 25% des cas. Le modèle semble donc trouver des difficultés à différencier ces deux cultures. Malgré ces erreurs, le modèle knn présente une accuracy gravitant autour de 0,93. Nous pouvons donc conclure que le modèle discrimine efficacement les différentes cultures.
+
+## Evaluation des modèles dans le cas d'un sous-ensemble de cultures variées
+
+```{r GLM cultures variées}
+# Modèle de régression logistique
+
+cultures_similaires <- c("banana", "lentil", "apple", "mango", "chickpea")
+
+filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
+filtered_test_data <- droplevels(filtered_test_data)
+
+# Prédiction avec le sous-ensemble de culture
+pred_glm_filtered <- predict(glm_model, newdata = filtered_test_data)
+
+# Matrice de confusion et accuracy
+pred_glm_filtered <- factor(pred_glm_filtered, levels = levels(filtered_test_data$label))
+conf_matrix_filtered <- confusionMatrix(pred_glm_filtered, filtered_test_data$label)
+print(conf_matrix_filtered)
+accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+
+# Modèle KNN
+
+cultures_similaires <- c("banana", "lentil", "apple", "mango", "chickpea")
+
+filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
+filtered_test_data <- droplevels(filtered_test_data)
+
+# Prédiction avec le sous-ensemble de culture
+pred_knn_filtered <- predict(knn_model, newdata = filtered_test_data)
+
+# Matrice de confusion et accuracy
+pred_knn_filtered <- factor(pred_knn_filtered, levels = levels(filtered_test_data$label))
+conf_matrix_filtered <- confusionMatrix(pred_knn_filtered, filtered_test_data$label)
+print(conf_matrix_filtered)
+accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+
+# Modèle Random Forest
+```
+
+# Conclusion

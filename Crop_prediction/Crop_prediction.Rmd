@@ -1,6 +1,6 @@
 ---
 title: "Prédictions de cultures"
-author: "Elise Lonchampt, Emma Da Silva, Maud Lesage"
+author: "Elise Lonchampt, Emma Da Costa Silva, Maud Lesage"
 date: "2024-10-12"
 output: html_document
 ---
@@ -9,9 +9,10 @@ output: html_document
 dta <- read.table('Crop_recommendation.csv', sep = ';', header = TRUE, stringsAsFactors = TRUE)
 summary(dta)
 ```
+
 # Prédictions avec l'entièreté des cultures
 
-## Modèle de régression logistique 
+## Modèle de régression logistique
 
 ```{r GLM}
 require(class)
@@ -35,6 +36,7 @@ confusionMatrix(pred_glm, data.test$label)
 accuracy <- conf_matrix$overall['Accuracy']
 print(paste("Accuracy: ", accuracy))
 ```
+
 ## Modèle KNN
 
 ```{r Knn}
@@ -88,6 +90,7 @@ res_HCPC$desc.var$quanti$`3`
 resPCA2 <- PCA(dta[,-9], scale.unit = TRUE, quali.sup = 8)
 plot(resPCA2,habillage=8,label="quali")
 ```
+
 Nous obtenons ici trois cluster différents. Le premier cluster inclut les fruits tropicaux et les cultures de rente, tels que la banane, la noix de coco, et le café, qui prospèrent dans des conditions de sol humide, riche en azote, avec des précipitations importantes. Ces cultures sont adaptées à des climats tropicaux où l'abondance d'eau et un sol bien drainé sont essentiels pour une croissance optimale. Le deuxième cluster regroupe la mangue et les légumineuses comme les pois chiches, les haricots mungo. Ces plantes préfèrent un sol relativement pauvre en azote, bien drainé, et faiblement humide. Le dernier cluster comprend des cultures tempérées comme la pomme et le raisin, qui préfèrent un sol riche en potassium et en phosphore, mais pauvre en azote.
 
 ## Evaluation des modèles dans le cas d'un sous-ensemble de cultures similaires
@@ -130,7 +133,7 @@ accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
 # Modèle Random Forest
 ```
 
-Nous pouvons constater que les accuracy liés aux modèles ont diminué. 
+Nous pouvons constater que les accuracy liés aux modèles ont diminué.
 
 En examinant plus en attentivement la matrice de confusion pour le modèle KNN, on observe quelques erreurs de prédiction, en particulier pour les classes café, jute, et riz. Bien que ces erreurs restent limitées, la classe riz est confondue avec la classe jute dans 25% des cas. Le modèle semble donc trouver des difficultés à différencier ces deux cultures. Malgré ces erreurs, le modèle knn présente une accuracy gravitant autour de 0,93. Nous pouvons donc conclure que le modèle discrimine efficacement les différentes cultures.
 

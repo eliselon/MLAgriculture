@@ -271,8 +271,4 @@ accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
 # Modèle Random Forest
 ```
 
-```{r}
-
-```
-
 # Conclusion

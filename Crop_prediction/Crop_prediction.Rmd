@@ -229,7 +229,9 @@ Nous pouvons constater que les accuracy liés aux modèles ont diminué. En effe
 
 En examinant plus en attentivement la matrice de confusion pour le modèle KNN, on observe quelques erreurs de prédiction, en particulier pour les classes café, jute, et riz. Bien que ces erreurs restent limitées, la classe riz est confondue avec la classe jute dans 25% des cas. Le modèle semble donc trouver des difficultés à différencier ces deux cultures. Malgré ces erreurs, le modèle knn présente une accuracy gravitant autour de 0,93. Nous pouvons donc conclure que le modèle discrimine efficacement les différentes cultures.
 
-Comparer avec Random Forest
+Parler de la spécificité et de la sensibilité
+
+Comparer les modèles entre eux et avec Random Forest
 
 # Evaluation des modèles dans le cas d'un sous-ensemble de cultures variées (pas sures de le faire)
 

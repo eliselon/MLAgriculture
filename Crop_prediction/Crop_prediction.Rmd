@@ -1,6 +1,6 @@
 ---
 title: "Prédictions de cultures"
-author: "Elise Lonchampt, Emma Da Silva, Maud Lesage"
+author: "Elise Lonchampt, Emma Da Costa Silva, Maud Lesage"
 date: "2024-10-12"
 output: html_document
 ---
@@ -11,6 +11,7 @@ output: html_document
 dta <- read.table('Crop_recommendation.csv', sep = ';', header = TRUE, stringsAsFactors = TRUE)
 summary(dta)
 ```
+<<<<<<< HEAD
 
 Le jeu de données collecté en Inde, un pays où 70 % de la population pratique l’agriculture, contribuant à environ 17 % du PIB national. Le jeu de données est composé de huit variables : sept variables physico-chimiques des sols et une variable décrivant le type de culture adaptée (Katarya et al., 2020). La variable culture présente 22 modalités et 100 observations par modalités. Le jeu de données est donc équilibré. Toutefois, malgré l'équilibrage en termes de taille des classes, certaines difficultés peuvent encore se poser.
 
@@ -95,6 +96,11 @@ Pomme et raisin se distinguent beaucoup des autres cultres. Ce sont des cultures
 
 # Prédiction de la meilleure culture pour un profil de sol 
 
+=======
+
+# Prédictions avec l'entièreté des cultures
+
+>>>>>>> refs/remotes/origin/Elise
 ## Modèle de régression logistique
 
 ```{r GLM}
@@ -120,8 +126,11 @@ accuracy <- conf_matrix$overall['Accuracy']
 print(paste("Accuracy: ", accuracy))
 ```
 
+<<<<<<< HEAD
 Accuracy égale à 0.86.
 
+=======
+>>>>>>> refs/remotes/origin/Elise
 ## Modèle KNN
 
 ```{r Knn}
@@ -225,7 +234,11 @@ accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
 # Modèle Random Forest sur python
 ```
 
+<<<<<<< HEAD
 Nous pouvons constater que les accuracy liées aux modèles ont diminué. En effet, pour le modèle glm elle passe de 0,86 à 0,84. Pour le modèle KNN, elle diminue de 6%, passant de 0,98 à 0,92.
+=======
+Nous pouvons constater que les accuracy liés aux modèles ont diminué.
+>>>>>>> refs/remotes/origin/Elise
 
 En examinant plus en attentivement la matrice de confusion pour le modèle KNN, on observe quelques erreurs de prédiction, en particulier pour les classes maïs, jute, et riz. Bien que ces erreurs restent limitées, la classe riz est confondue avec la classe jute dans 25% des cas. Le modèle semble donc trouver des difficultés à différencier ces deux cultures. Malgré ces erreurs, le modèle knn présente une accuracy gravitant autour de 0,93. Nous pouvons donc conclure que le modèle discrimine efficacement les différentes cultures.
 

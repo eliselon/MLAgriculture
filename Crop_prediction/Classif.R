@@ -33,7 +33,7 @@ res_HCPC <- HCPC(res_PCA, nb.clust = 3) ## 3 clusters
 dta$clust <- res_HCPC$data.clust$clust
 table_clusters_label <- table(dta$label, dta$clust)
 print(table_clusters_label)
-## Cluster 1 = Banana, Coconut, Coffee, Cotton, Jute, Maize, Muskmelon, Orange, Papaya, Pomegrade, Rice, Watermelon
+## Cluster 1 = Banana, Coconut, Coffee, Cotton, Jute, Maize, Muskmelon, Orange, Papaya, Pomegranate, Rice, Watermelon
 ## Cluster 2 = Blackgram, Chickpea, Kidneybeans, Lentil, Mango, Mothbeans, Mungbean, Pigeonpeas
 ## Cluster 3 = Apple, Grapes
 
@@ -48,10 +48,11 @@ res_HCPC$desc.var$quanti$`2` ## Légumineuses : sol peu humide, sol pauvre en N
 res_HCPC$desc.var$quanti$`3` ## Fruits tempérés : sol riche K et P mais pauvre en N
 
 resPCA2 <- PCA(dta[,-9], scale.unit = TRUE, quali.sup = 8)
+plot(resPCA2,habillage=8,label="quali")
 
 ## Choix des cultures semblables
-labels_to_filter <- c("muskmelon", "watermelon", "jute", "rice")
-labels_to_filter <- c("orange", "mungbean", "maize", "blackgram")
+labels_to_filter <- c("banana", "lentil", "apple", "mango", "chickpea") ## Accuracy = 1
+labels_to_filter <- c("maize", "papaya", "rice", "watermelon", "jute") ## Accuracy knn = 0.936 / Accuracy glm = 0.96
 filtered_data <- dta[dta$label %in% labels_to_filter, 1:8]
 filtered_data <- droplevels(filtered_data)
 summary(filtered_data)
@@ -85,9 +86,6 @@ knn_model <- train(label ~ .,  # Spécifier la formule (variable à prédire et 
                    tuneGrid = tuneGrid, 
                    trControl = ctrl)
 
-# Afficher les résultats
-print(knn_model)
-
 # Meilleur k trouvé
 best_k <- knn_model$bestTune
 print(best_k)
@@ -95,106 +93,96 @@ print(best_k)
 # Prédire avec le meilleur modèle
 pred_knn <- predict(knn_model, newdata = data.test)
 
-## Test
-
-get.error <- function(class,pred){
-  cont.tab <- table(class,pred)
-  print(cont.tab)
-  return((cont.tab[2,1]+cont.tab[1,2])/(sum(cont.tab)))
-}
-
-k.vec <- seq(20,1)
-
-err.k <- rep(NA,times=length(k.vec))
-
-for (i in 1:length(k.vec)){
-  k <- k.vec[i]
-  pred.train.knn <- knn(data.train[,-8],data.test[,-8],cl=data.train$label,k=k)
-  err.k[i] <- get.error(data.test$label, pred.train.knn)
-}
-
-plot(k.vec,err.k,type="b")
+# Accuracy
+conf_matrix <- confusionMatrix(pred_knn, data.test$label)
+confusionMatrix(pred_knn, data.test$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy))
 
 
-pred_knn <- knn(train=data.train[,-8],test= data.test[,-8], cl=data.train$label, k = k)
+res_ACP <- PCA(filtered_data, scale.unit = TRUE, quali.sup = 8)
+plot(res_ACP,habillage=8,label="quali")
 
-cM.knn <- confusionMatrix(data = pred_knn, reference = data.test$label)
-cM.knn$overall["Accuracy"]
+##########################################
+## Régression logistique
+##########################################
 
+glm_model <- train(label ~ ., data = data.train, method = "multinom", trControl = ctrl)
+pred_glm <- predict(glm_model, newdata = data.test)
 
-PCA(filtered_data, scale.unit = TRUE, quali.sup = 8)
+# Accuracy
+conf_matrix <- confusionMatrix(pred_glm, data.test$label)
+confusionMatrix(pred_glm, data.test$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy))
 
 ##########################################
 ## Random Forest 
 ##########################################
 
-# Charger les packages nécessaires
-library(class)
+
 library(caret)
 
-# Créer toutes les combinaisons possibles de 5 cultures
-labels_to_test <- c("banana", "coconut", "coffee", "cotton", "jute", "maize", "muskmelon", 
-                    "orange", "papaya", "pomegrade", "rice", "watermelon", "blackgram", 
-                    "chickpea", "kidneybeans", "lentil", "mango", "mothbeans", "mungbean", 
-                    "pigeonpeas", "apple", "grapes")
+# Diviser les données en ensembles d'entraînement et de test
+trainIndex <- createDataPartition(dta$label, p = 0.75, list = FALSE)
+data.train <- dta[trainIndex, ]
+data.test <- dta[-trainIndex, ]
 
+# Configurer la validation croisée
+ctrl <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
+tuneGrid <- expand.grid(k = 1:20)
+
+# Entraîner le modèle KNN avec la validation croisée
+set.seed(123)
+knn_model <- train(label ~ .,
+                   data = data.train, 
+                   method = "knn", 
+                   tuneGrid = tuneGrid, 
+                   trControl = ctrl)
+
+# Meilleur k trouvé
+best_k <- knn_model$bestTune
+print(paste("Best k found: ", best_k$k))
+
+# Prédire avec le meilleur modèle sur l'ensemble de test complet
+pred_knn <- predict(knn_model, newdata = data.test)
+
+# Créer toutes les combinaisons possibles de 5 cultures
+labels_to_test <- c("banana", "coconut", "coffee", "cotton", "jute", "maize", "muskmelon", "orange", "papaya", "pomegranate", "rice", "watermelon")
 combinations <- combn(labels_to_test, 5, simplify = FALSE)
 
 set.seed(123)
-selected_combinations <- sample(combinations, 10)
+selected_combinations <- sample(combinations)
 
-# Initialiser un vecteur pour stocker les taux d'erreur
-error_rates <- numeric(length(combinations))
-
-# Fonction pour calculer le taux d'erreur
-get.error <- function(class,pred){
-  cont.tab <- table(class,pred)
-  print(cont.tab)
-  return((cont.tab[2,1]+cont.tab[1,2])/(sum(cont.tab)))
-}
+# Initialiser des vecteurs pour stocker les taux d'erreur
+accuracy_knn <- numeric(length(selected_combinations))
 
 # Boucle pour tester chaque combinaison
-for (i in 1:length(combinations)) {
+for (i in 1:length(selected_combinations)) {
   
   # Filtrer les données pour ne garder que les modalités de la combinaison courante
-  selected_labels <- combinations[[i]]
-  filtered_data <- dta[dta$label %in% selected_labels, ]
-  filtered_data <- droplevels(filtered_data)
-  filtered_data <- filtered_data[, -ncol(filtered_data)]
-  
-  # Créer des échantillons de train et test
-  set.seed(123)  # Pour la reproductibilité
-  trainIndex <- createDataPartition(filtered_data$label, p = 0.75, list = FALSE)
-  data.train <- filtered_data[trainIndex, ]
-  data.test <- filtered_data[-trainIndex, ]
-  
-  ctrl <- trainControl(method = "cv", number = 10)  # Validation croisée à 10 folds
-  
-  # Définir la grille pour tester plusieurs valeurs de k
-  tuneGrid <- expand.grid(k = 1:20)  # Tester les valeurs de k de 1 à 20
-  
-  # Entraîner le modèle KNN avec la validation croisée pour optimiser k
-  knn_model <- train(label ~ .,  # Spécifier la formule (variable à prédire et prédicteurs)
-                     data = data.train, 
-                     method = "knn", 
-                     tuneGrid = tuneGrid, 
-                     trControl = ctrl)
-  
-  # Meilleur k trouvé
-  best_k <- knn_model$bestTune
+  selected_labels <- selected_combinations[[i]]
+  filtered_test_data <- data.test[data.test$label %in% selected_labels, ]
+  filtered_test_data <- droplevels(filtered_test_data)
+  summary(filtered_test_data)
 
-  pred.knn <- knn(data.train[,-8], data.test[,-8], cl = data.train$label, k = best_k)
-  
-  # Calculer le taux d'erreur pour cette combinaison
-  error_rates[i] <- get_error(data.test$label,pred.knn)
+  # Prédiction avec le sous-ensemble de cultures
+  pred_knn_filtered <- predict(knn_model, newdata = filtered_test_data)
+    
+  # S'assurer que les niveaux de facteur correspondent
+  pred_knn_filtered <- factor(pred_knn_filtered, levels = levels(filtered_test_data$label))
+    
+  # Accuracy
+  pred_knn_filtered <- factor(pred_knn_filtered, levels = levels(filtered_test_data$label))
+  conf_matrix_filtered <- confusionMatrix(pred_knn_filtered, filtered_test_data$label)
+  print(conf_matrix_filtered)
+  accuracy_filtered[i] <- conf_matrix_filtered$overall['Accuracy']
 }
 
-# Trouver la combinaison avec le taux d'erreur le plus élevé (le modèle le moins performant)
-worst_combination_index <- which.max(error_rates)
-worst_combination <- combinations[[worst_combination_index]]
-worst_error_rate <- error_rates[worst_combination_index]
-
-# Afficher la combinaison la moins performante et son taux d'erreur
-print(paste("Worst combination: ", paste(worst_combination, collapse = ", ")))
-print(paste("Worst error rate: ", worst_error_rate))
+# Trouver la combinaison avec le taux d'erreur le plus élevé (le modèle KNN le moins performant)
+worst_combination_index_knn <- which.min(accuracy_filtered)
+worst_combination_knn <- selected_combinations[worst_combination_index_knn]
+worst_error_rate_knn <- accuracy_filtered[worst_combination_index_knn]
+print(paste("Worst combination for KNN: ", paste(worst_combination_knn, collapse = ", ")))
+print(paste("Worst accuracy for KNN: ", worst_error_rate_knn))
 

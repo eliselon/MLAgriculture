@@ -120,6 +120,45 @@ print(paste("Accuracy: ", accuracy))
 
 Accuracy égale à 0.86.
 
+# importance des variables
+
+```{r GLM}
+# Obtenir l'importance des variables
+importance <- varImp(glm_model, scale = FALSE)
+print(importance)
+
+```
+
+```{r GLM}
+library(nnet)
+# choix du meilleur modèle
+multinom_model <- multinom(label ~ ., data = data.train)
+
+# Appliquer la sélection pas à pas avec step()
+step_model <- step(multinom_model, direction = "both")
+
+# Afficher un résumé du modèle final après la sélection
+summary(step_model)
+
+```
+
+
+```{r GLM}
+
+# Entraîner le nouveau modèle glm avec la validation croisée
+glm_model_final <- train(label ~ P + K + humidity + rainfall, data = data.train, method = "multinom", trControl = ctrl)
+
+# Prédire
+pred_glm <- predict(glm_model_final, newdata = data.test)
+
+# Accuracy
+conf_matrix <- confusionMatrix(pred_glm, data.test$label)
+confusionMatrix(pred_glm, data.test$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy))
+
+```
+
 ## Modèle KNN
 
 ```{r Knn}
@@ -203,6 +242,22 @@ pred_glm_filtered <- factor(pred_glm_filtered, levels = levels(filtered_test_dat
 conf_matrix_filtered <- confusionMatrix(pred_glm_filtered, filtered_test_data$label)
 print(conf_matrix_filtered)
 accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+
+## avec le nouveau modèle
+
+# Prédiction avec le sous-ensemble de culture
+pred_glm_filtered <- predict(glm_model_final, newdata = filtered_test_data)
+
+# Matrice de confusion et accuracy
+pred_glm_filtered <- factor(pred_glm_filtered, levels = levels(filtered_test_data$label))
+conf_matrix_filtered <- confusionMatrix(pred_glm_filtered, filtered_test_data$label)
+print(conf_matrix_filtered)
+accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+accuracy_filtered
+
+```
+
+```{r Cultures similaires}
 
 # Modèle KNN
 

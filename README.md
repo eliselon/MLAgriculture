@@ -7,7 +7,7 @@
 <br />
 
 ::: {align="center"}
-<a href="https://github.com/github_username/repo_name"> ![Logo](images/INSTITUT_AGRO_Rennes-Angers_CMJN_png.png){alt="Logo"} </a>
+<a href="https://github.com/eliselon/MLAgriculture"> ![Logo](images/INSTITUT_AGRO_Rennes-Angers_CMJN_png.png){alt="Logo" width="1000"} </a>
 
 <h3 align="center">
 
@@ -15,9 +15,13 @@ Le Machine Learning au service de l'agriculture de précision
 
 </h3>
 
+::: {align="center"}
+Contribution à la conférence "One Health : Le Machine Learning pour la santé du monde" du 24/10/2024
+:::
+
 <p align="center">
 
-Contribution à la conférence "One Health : Le Machine Learning pour la santé du monde" du 24/10/2024 <br />
+<br />
 
 </p>
 :::
@@ -132,7 +136,9 @@ Décrire la structure des fichiers du repository ici !
 
 </p>
 
-<a href="https://github.com/eliselon/MLAgriculture/graphs/contributors"> ![contrib.rocks image](https://contrib.rocks/image?repo=eliselon/MLAgriculture){alt="contrib.rocks image"} </a>
+<a href="https://github.com/eliselon/MLAgriculture/graphs/contributors"> ![contrib.rocks image](https://contrib.rocks/image?repo=eliselon/MLAgriculture){alt="contrib.rocks image"}
+
+</p>
 
 <!-- CONTACT -->
 

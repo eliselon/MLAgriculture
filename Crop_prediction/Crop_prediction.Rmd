@@ -11,101 +11,18 @@ output: html_document
 dta <- read.table('Crop_recommendation.csv', sep = ';', header = TRUE, stringsAsFactors = TRUE)
 summary(dta)
 ```
-<<<<<<< HEAD
-
 Le jeu de données collecté en Inde, un pays où 70 % de la population pratique l’agriculture, contribuant à environ 17 % du PIB national. Le jeu de données est composé de huit variables : sept variables physico-chimiques des sols et une variable décrivant le type de culture adaptée (Katarya et al., 2020). La variable culture présente 22 modalités et 100 observations par modalités. Le jeu de données est donc équilibré. Toutefois, malgré l'équilibrage en termes de taille des classes, certaines difficultés peuvent encore se poser.
-
-# Défis potentiels liés au échantillonnage 
-
-## Hétérogénéité intra-classe
-
-Même avec un échantillon équilibré, un modèle peut être biaisé si certaines cultures présentent une grande variabilité interne. En effet, si une culture présente des profils de sol très variables, le modèle aura du mal à apprendre une représentation cohérente de cette culture, ce qui réduira la précision des prédictions pour cette classe. En d’autres termes, plus il y a de variabilité interne à une classe, plus il est difficile pour le modèle de l'identifier avec précision.
-
-```{r visualisation des données}
-library(ggplot2)
-
-ggplot(dta, aes(x = label, y = N)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(title = "Concentration en N favorable pour chaque culture", x = "Cultures", y = "N") + 
-  theme(plot.title = element_text(hjust = 0.5))
-
-ggplot(dta, aes(x = label, y = P)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(title = "Concentration en P favorable pour chaque culture", x = "Cultures", y = "P") + 
-  theme(plot.title = element_text(hjust = 0.5))
-
-ggplot(dta, aes(x = label, y = K)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(title = "Concentration en K favorable pour chaque culture", x = "Cultures", y = "K") + 
-  theme(plot.title = element_text(hjust = 0.5))
-
-ggplot(dta, aes(x = label, y = ph)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(title = "pH favorable pour chaque culture", x = "Cultures", y = "pH") + 
-  theme(plot.title = element_text(hjust = 0.5))
-
-ggplot(dta, aes(x = label, y = temperature)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(title = "Température favorable pour chaque culture", x = "Cultures", y = "Température") +
-  theme(plot.title = element_text(hjust = 0.5))
-
-ggplot(dta, aes(x = label, y = humidity)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(title = "Humidité favorable pour chaque culture", x = "Cultures", y = "humidity") +
-  theme(plot.title = element_text(hjust = 0.5))
-
-ggplot(dta, aes(x = label, y = rainfall)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(title = "Taux de précipitation favorable pour chaque culture", x = "Cultures", y = "Taux de précipitation") +
-  theme(plot.title = element_text(hjust = 0.5))
-```
-
-```{r}
-library(GGally)
-p <- ggpairs(dta, columns = 1:7, 
-             aes(color = label),     # Colorier par la variable label
-             legend = 1)             # Activer la légende
-
-# Ajouter la légende
-p <- p + theme(legend.position = "right")  # Positionner la légende à droite
-
-# Afficher le graphique avec légende
-print(p)
-```
-
-Globalement pas beaucoup de variabilité intra-classe à part pour les variables température, pH et taux de précipitations. A développer
-
-## Similarité entre les cultures
-
-Etant donné le grand nombre de culture, il est probable que certaines cultures soient très similaires en termes de caractéristiques mesurées. Par exemple, deux cultures qui se développent dans des conditions de sol et climatiques très proches pourraient partager des profils de sol quasi identiques. Cela rendrait difficile la distinction entre ces cultures pour le modèle.
-
-```{r}
-require(FactoMineR)
-resPCA2 <- PCA(dta[,-9], scale.unit = TRUE, quali.sup = 8)
-plot(resPCA2,habillage=8,label="quali")
-```
-
-Pomme et raisin se distinguent beaucoup des autres cultres. Ce sont des cultures qui apprécient fortement les sols riches en potassium et en phosphore. Cependant, plus de mal à distinguer les fruits exotiques et les cultures de rente en elles. A développer.
 
 # Prédiction de la meilleure culture pour un profil de sol 
 
-=======
-
-# Prédictions avec l'entièreté des cultures
-
->>>>>>> refs/remotes/origin/Elise
 ## Modèle de régression logistique
 
 ```{r GLM}
 require(class)
 require(caret)
+
+set.seed(123)
+
 trainIndex <- createDataPartition(dta$label, p = 0.75, list = FALSE)
 
 data.train <- dta[trainIndex, ]
@@ -126,15 +43,14 @@ accuracy <- conf_matrix$overall['Accuracy']
 print(paste("Accuracy: ", accuracy))
 ```
 
-<<<<<<< HEAD
 Accuracy égale à 0.86.
 
-=======
->>>>>>> refs/remotes/origin/Elise
 ## Modèle KNN
 
 ```{r Knn}
 tuneGrid <- expand.grid(k = 1:20)
+
+set.seed(123)
 
 # Entraîner le modèle Knn avec la validation croisée
 knn_model <- train(label ~ .,
@@ -154,16 +70,26 @@ pred_knn <- predict(knn_model, newdata = data.test)
 conf_matrix <- confusionMatrix(pred_knn, data.test$label)
 confusionMatrix(pred_knn, data.test$label)
 accuracy <- conf_matrix$overall['Accuracy']
-accuracy
+print(paste("Accuracy: ", accuracy))
 ```
 
-Accuracy égale à 0.978.
+Accuracy égale à 0,98.
 
 ## Random Forest
 
 Réalisé sur python
 
 # Test de la capacité des modèles à différencier les cultures similaires
+
+## Similarité entre les cultures
+
+Etant donné le grand nombre de culture, il est probable que certaines cultures soient très similaires en termes de caractéristiques mesurées. Par exemple, deux cultures qui se développent dans des conditions de sol et climatiques très proches pourraient partager des profils de sol quasi identiques. Cela rendrait difficile la distinction entre ces cultures pour le modèle.
+
+```{r}
+require(FactoMineR)
+resPCA2 <- PCA(dta, scale.unit = TRUE, quali.sup = 8)
+plot(resPCA2,habillage=8,label="quali")
+```
 
 ## Choix de 5 cultures similaires suite à une classification ascendante hiérarchique
 
@@ -217,6 +143,8 @@ accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
 
 # Modèle KNN
 
+set.seed(123)
+
 cultures_similaires <- c("coffee", "cotton", "maize", "rice", "jute")
 
 filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
@@ -234,11 +162,7 @@ accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
 # Modèle Random Forest sur python
 ```
 
-<<<<<<< HEAD
 Nous pouvons constater que les accuracy liées aux modèles ont diminué. En effet, pour le modèle glm elle passe de 0,86 à 0,84. Pour le modèle KNN, elle diminue de 6%, passant de 0,98 à 0,92.
-=======
-Nous pouvons constater que les accuracy liés aux modèles ont diminué.
->>>>>>> refs/remotes/origin/Elise
 
 En examinant plus en attentivement la matrice de confusion pour le modèle KNN, on observe quelques erreurs de prédiction, en particulier pour les classes maïs, jute, et riz. Bien que ces erreurs restent limitées, la classe riz est confondue avec la classe jute dans 25% des cas. Le modèle semble donc trouver des difficultés à différencier ces deux cultures. Malgré ces erreurs, le modèle knn présente une accuracy gravitant autour de 0,93. Nous pouvons donc conclure que le modèle discrimine efficacement les différentes cultures.
 
@@ -246,42 +170,40 @@ Parler de la spécificité et de la sensibilité
 
 Comparer les modèles entre eux et avec Random Forest
 
-# Evaluation des modèles dans le cas d'un sous-ensemble de cultures variées (pas sures de le faire)
+# Sélection des variables dans le modèle
 
-```{r GLM cultures variées}
-# Modèle de régression logistique
+## Corrélation entre les variables 
 
-cultures_similaires <- c("banana", "lentil", "apple", "mango", "chickpea")
+```{r}
+library (tidyverse)
+library(ggcorrplot)
 
-filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
-filtered_test_data <- droplevels(filtered_test_data)
-
-# Prédiction avec le sous-ensemble de culture
-pred_glm_filtered <- predict(glm_model, newdata = filtered_test_data)
-
-# Matrice de confusion et accuracy
-pred_glm_filtered <- factor(pred_glm_filtered, levels = levels(filtered_test_data$label))
-conf_matrix_filtered <- confusionMatrix(pred_glm_filtered, filtered_test_data$label)
-print(conf_matrix_filtered)
-accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
-
-# Modèle KNN
-
-cultures_similaires <- c("banana", "lentil", "apple", "mango", "chickpea")
-
-filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
-filtered_test_data <- droplevels(filtered_test_data)
-
-# Prédiction avec le sous-ensemble de culture
-pred_knn_filtered <- predict(knn_model, newdata = filtered_test_data)
-
-# Matrice de confusion et accuracy
-pred_knn_filtered <- factor(pred_knn_filtered, levels = levels(filtered_test_data$label))
-conf_matrix_filtered <- confusionMatrix(pred_knn_filtered, filtered_test_data$label)
-print(conf_matrix_filtered)
-accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
-
-# Modèle Random Forest
+dta[,-8] %>% cor() %>% round(1) %>% ggcorrplot(type = "lower", lab = TRUE)
 ```
 
+## Importance des variables dans les modèles
+
+```{r Var}
+set.seed(123)
+
+# Évaluer l'importance des variables avec RFE
+rfe_ctrl <- rfeControl(functions = rfFuncs, # Pour Random Forest par exemple, cela peut aussi être "lmFuncs" pour la régression linéaire
+                       method = "cv", 
+                       number = 10)
+
+# Effectuer l'élimination récursive des variables
+rfe_results <- rfe(data.train[, -ncol(data.train)], data.train$label, 
+                   sizes = c(1:7),  # Teste toutes les tailles de 1 à 7
+                   rfeControl = rfe_ctrl)
+
+# Résumé des résultats
+print(rfe_results)
+
+# Visualiser l'importance des variables
+plot(rfe_results, type = c("g", "o"))
+
+# Variables sélectionnées
+selected_vars <- predictors(rfe_results)
+print(selected_vars)
+```
 # Conclusion

@@ -48,6 +48,8 @@ conf_matrix <- confusionMatrix(pred_glm, data.test$label)
 confusionMatrix(pred_glm, data.test$label)
 accuracy <- conf_matrix$overall['Accuracy']
 print(paste("Accuracy: ", accuracy))
+
+
 ```
 
 Accuracy égale à 0.86.
@@ -88,6 +90,37 @@ conf_matrix <- confusionMatrix(pred_glm, data.test$label)
 confusionMatrix(pred_glm, data.test$label)
 accuracy <- conf_matrix$overall['Accuracy']
 print(paste("Accuracy: ", accuracy))
+
+
+library(ggplot2)
+
+# Créer un dataframe avec les valeurs d'accuracy
+accuracy_data <- data.frame(
+  Model = c("Modèle Complet", "Modèle Sélectionné"),
+  Accuracy = c(0.87, 0.95)
+)
+
+# Créer le graphique avec des tailles augmentées
+ggplot(accuracy_data, aes(x = Model, y = Accuracy, fill = Model)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Accuracy, 2)), 
+            position = position_dodge(0.9), 
+            vjust = -0.5, 
+            size = 8) +  
+  labs(title = "Comparaison de l'Accuracy des Modèles",
+       x = "Type de Modèle",
+       y = "Accuracy") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),   # Titre du graphique
+    axis.title.x = element_text(size = 18),                 # Titre de l'axe X
+    axis.title.y = element_text(size = 18),                 # Titre de l'axe Y
+    legend.title = element_text(size = 15),                 # Titre de la légende
+    legend.text = element_text(size = 15)                   # Texte de la légende
+  ) +
+  scale_fill_manual(values = c("Modèle Complet" = "blue", "Modèle Sélectionné" = "green"))
+
+
 
 ```
 
@@ -190,6 +223,7 @@ pred_glm_filtered <- factor(pred_glm_filtered, levels = levels(filtered_test_dat
 conf_matrix_filtered <- confusionMatrix(pred_glm_filtered, filtered_test_data$label)
 print(conf_matrix_filtered)
 accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+accuracy_filtered
 
 ## avec le nouveau modèle
 

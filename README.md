@@ -15,7 +15,11 @@ Le Machine Learning au service de l'agriculture de précision
 
 <p style="text-align: center;">
 
-Contribution à la conférence "One Health : Le Machine Learning pour la santé du monde" du 24/10/2024
+Contribution à la conférence
+
+"One Health : Le Machine Learning pour la santé du monde"
+
+du 24/10/2024
 
 </p>
 :::

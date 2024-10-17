@@ -1,4 +1,4 @@
-[![Contributors](https://img.shields.io/github/contributors/github_eliselon/MLAgriculture.svg?style=for-the-badge)](https://github.com/eliselon/MLAgriculture/graphs/contributors) [![Forks](https://img.shields.io/github/forks/github_username/repo_name.svg?style=for-the-badge)](https://github.com/github_username/repo_name/network/members) [![Stargazers](https://img.shields.io/github/stars/github_username/repo_name.svg?style=for-the-badge)](https://github.com/github_username/repo_name/stargazers) [![Issues](https://img.shields.io/github/issues/github_username/repo_name.svg?style=for-the-badge)](https://github.com/github_username/repo_name/issues)
+[![Contributors](https://img.shields.io/github/contributors/github_eliselon/MLAgriculture.svg?style=for-the-badge)](https://github.com/eliselon/MLAgriculture/graphs/contributors) [![Forks](https://img.shields.io/github/forks/github_username/repo_name.svg?style=for-the-badge)](https://github.com/github_username/repo_name/network/members) [![Stargazers](https://img.shields.io/github/stars/github_username/repo_name.svg?style=for-the-badge)](https://github.com/github_username/repo_name/stargazers)
 
 <a id="readme-top"></a>
 
@@ -7,7 +7,7 @@
 <br />
 
 ::: {align="center"}
-<a href="https://github.com/eliselon/MLAgriculture"> ![Logo](images/INSTITUT_AGRO_Rennes-Angers_CMJN_png.png){alt="Logo" width="1000"} </a>
+<a href="https://github.com/eliselon/MLAgriculture"> ![Logo](images/INSTITUT_AGRO_Rennes-Angers_CMJN_png.png){alt="Logo" width="244"} </a>
 
 <h3 align="center">
 
@@ -15,11 +15,13 @@ Le Machine Learning au service de l'agriculture de précision
 
 </h3>
 
+<p align="center">
+
+::: {align="center"}
 ::: {align="center"}
 Contribution à la conférence "One Health : Le Machine Learning pour la santé du monde" du 24/10/2024
 :::
-
-<p align="center">
+:::
 
 <br />
 
@@ -120,7 +122,29 @@ Le jeu de données utilisé pour ce projet provient de [source de données] (ajo
 
 ## Structure des fichiers du repository
 
-Décrire la structure des fichiers du repository ici !
+README.md : Ce fichier, document expliquant le projet, ses objectifs et sa structure
+
+diapo.pptx : Présentation PowerPoint du projet
+
+Conference_abstract.docx : Résumé de cette contribution à la conférence
+
+Crop_prediction/ : Dossier contenant les scripts liés aux prédictions de cultures et le jeu de données
+
+-   Crop_recommendation.csv : Fichier CSV du jeu de données utilisé pour les prédictions de cultures
+
+-   Crop_prediction.Rproj : Fichier de projet RStudio définissant l'environnement de travail pour les scripts R
+
+-   Crop_prediction.Rmd : Script Markdown R pour la prédiction et l'analyse des données
+
+-   Crop_prediction.html : Version HTML généré à partir de Crop_prediction.Rmd
+
+-   random_forest.py : Script Python pour l'entraînement et l'évaluation du modèle Random Forest généré via Google Colab
+
+-   Random_Forest.ipynb : Notebook Jupyter généré via Google Colab à partir de random_forest.py
+
+images/ : Dossier contenant une image
+
+.gitignore : Fichier indiquant à Git quels fichiers doivent être ignorés dans le contrôle de version
 
 <p align="right">
 

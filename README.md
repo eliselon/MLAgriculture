@@ -2,18 +2,16 @@
 
 <!-- PROJECT LOGO -->
 
-<br />
-
 ::: {align="center"}
 <a href="https://github.com/eliselon/MLAgriculture"> ![Logo](images/INSTITUT_AGRO_Rennes-Angers_CMJN_png.png){alt="Logo" width="6.5cm" height="2.6cm"} </a>
 
 <h3 align="center">
 
-Le Machine Learning au service de l'agriculture de précision
+**Le Machine Learning au service de l'agriculture de précision**
 
 </h3>
 
-<p align="center">
+<h3 align="center">
 
 Contribution à la conférence
 
@@ -21,7 +19,7 @@ Contribution à la conférence
 
 du 24/10/2024
 
-</p>
+</h3>
 :::
 
 <!-- TABLE DES MATIÈRES -->

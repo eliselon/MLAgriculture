@@ -142,6 +142,8 @@ images/ : Dossier contenant une image
 
 .gitignore : Fichier indiquant à Git quels fichiers doivent être ignorés dans le contrôle de version
 
+(Conseil : Ne pas oublier d'importer le fichier .csv sur google colab lors de l'importation du fichier .ipynb)
+
 <p align="right">
 
 (<a href="#readme-top">back to top</a>)

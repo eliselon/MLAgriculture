@@ -19,7 +19,7 @@ Contribution à la conférence
 du 24/10/2024
 
 </h3>
-:::
+
 
 <!-- TABLE DES MATIÈRES -->
 

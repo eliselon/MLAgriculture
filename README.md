@@ -13,7 +13,7 @@ Le Machine Learning au service de l'agriculture de précision
 
 </h3>
 
-<p style="text-align: center;">
+<h3 align="center">
 
 Contribution à la conférence
 
@@ -21,7 +21,7 @@ Contribution à la conférence
 
 du 24/10/2024
 
-</p>
+</h3>
 :::
 
 <!-- TABLE DES MATIÈRES -->

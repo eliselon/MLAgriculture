@@ -2,8 +2,7 @@
 
 <!-- PROJECT LOGO -->
 
-::: {align="center"}
-<a href="https://github.com/eliselon/MLAgriculture"> ![Logo](images/INSTITUT_AGRO_Rennes-Angers_CMJN_png.png){alt="Logo" width="6.5cm" height="2.6cm"} </a>
+<a href="https://github.com/eliselon/MLAgriculture"> ![Logo](images/INSTITUT_AGRO_Rennes-Angers_CMJN_png.png) </a>
 
 <h3 align="center">
 
@@ -158,7 +157,7 @@ images/ : Dossier contenant une image
 
 </p>
 
-<a href="https://github.com/eliselon/MLAgriculture/graphs/contributors"> ![contrib.rocks image](https://contrib.rocks/image?repo=eliselon/MLAgriculture){alt="contrib.rocks image"}
+<a href="https://github.com/eliselon/MLAgriculture/graphs/contributors"> ![contrib.rocks image](https://contrib.rocks/image?repo=eliselon/MLAgriculture)
 
 </a>
 

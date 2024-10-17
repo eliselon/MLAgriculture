@@ -2,20 +2,58 @@
 title: "Prédictions de cultures"
 author: "Elise Lonchampt, Emma Da Costa Silva, Maud Lesage"
 date: "2024-10-12"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    number_sections: true
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
-# Présentation du jeu de données
+# Introduction
+
+## Contexte
+
+D'ici 2050, la population mondiale atteindra 9,1 milliards d'habitants,
+entraînant une augmentation de 70 % des besoins alimentaires. Cette
+situation, combinée à la réduction des terres agricoles disponibles en
+raison de l'urbanisation rapide, nécessite des innovations majeures dans
+la gestion agricole (Sharma et al., 2023). L’agriculture de précision,
+un domaine en plein essor, utilise les données et la technologie pour
+optimiser la production agricole, en intégrant la variabilité
+biophysique des sols dans le processus décisionnel.
+
+Le travail proposé a été réalisé à partir d’un jeu de données collecté
+en Inde, un pays où 70 % de la population pratique l’agriculture,
+contribuant à environ 17 % du PIB national (Katarya et al., 2020).
+L’objectif de l'étude est d’utiliser le machine learning pour prédire
+les cultures les plus adaptées en fonction des caractéristiques du sol,
+optimisant ainsi l’usage des ressources agricoles.
+
+## Présentation du jeu de données
 
 ```{r importation jeu de données}
 dta <- read.table('Crop_recommendation.csv', sep = ';', header = TRUE, stringsAsFactors = TRUE)
 summary(dta)
+
+require(FactoMineR)
+resPCA2 <- PCA(dta, scale.unit = TRUE, quali.sup = 8)
+plot(resPCA2,habillage=8,label="quali")
 ```
-Le jeu de données collecté en Inde, un pays où 70 % de la population pratique l’agriculture, contribuant à environ 17 % du PIB national. Le jeu de données est composé de huit variables : sept variables physico-chimiques des sols et une variable décrivant le type de culture adaptée (Katarya et al., 2020). La variable culture présente 22 modalités et 100 observations par modalités. Le jeu de données est donc équilibré. Toutefois, malgré l'équilibrage en termes de taille des classes, certaines difficultés peuvent encore se poser.
 
-# Prédiction de la meilleure culture pour un profil de sol 
+Le jeu de données inclut 2200 observations réparties sur huit variables
+: sept variables physico-chimiques des sols et une variable décrivant le
+type de culture adaptée. On a ici 100 observations par culture, le jeu
+de données est donc équilibré.
 
-## Modèle de régression logistique
+# Prédiction de la meilleure culture pour un profil de sol donné
+
+## Modèles complets
+
+### Modèle de régression logistique
 
 ```{r GLM}
 require(class)
@@ -43,9 +81,9 @@ accuracy <- conf_matrix$overall['Accuracy']
 print(paste("Accuracy: ", accuracy))
 ```
 
-Accuracy égale à 0.86.
+Accuracy égale à 0,85.
 
-## Modèle KNN
+### Modèle KNN
 
 ```{r Knn}
 tuneGrid <- expand.grid(k = 1:20)
@@ -73,17 +111,225 @@ accuracy <- conf_matrix$overall['Accuracy']
 print(paste("Accuracy: ", accuracy))
 ```
 
-Accuracy égale à 0,98.
+Grâce à la validation croisée, plusieurs valeurs de k ont été testées.
+Un k optimal qui maximise l'accuracy sans risquer de sur-ajuster le
+modèle aux données d'entraînement a été choisi. Il prend la valeur de 1
+; cela signifie que le modèle utilise uniquement le plus proche voisin
+pour faire ses prédictions.
 
-## Random Forest
+Premièrement, on a vu précédemment que certaines classes semblent très
+proches les unes des autres en termes de variables explicatives. Cela
+signifie qu’il existe des régions dans l’espace des variables où les
+observations de classes différentes sont fortement entremêlées. En
+choisissant k = 1, le modèle peut mieux s’adapter à ces subtilités
+locales en se basant uniquement sur le point le plus proche, sans être
+influencé par des voisins appartenant à d’autres classes.
+
+Deuxièmement, le grand nombre de classes ajoute de la complexité, en
+particulier dans les zones où plusieurs classes coexistent à proximité
+dans l'espace des caractéristiques. Les frontières entre les classes
+peuvent donc être très complexes. Un k plus grand pourrait créer un
+effet de lissage, en mélangeant les points de différentes classes, ce
+qui pourrait mener à des erreurs de classification.
+
+Le modèle Knn possède une accuracy égale à 0,98. C'est un très bon
+résultat étant donné le grand nombre de classes.
+
+### Random Forest
 
 Réalisé sur python
+
+## Modèles sélectionnés
+
+### Corrélation entre les variables
+
+Lorsque la multicollinéarité est présente, elle peut conduire à des
+informations redondantes dans l'ensemble de données. L'algorithme peut
+alors rencontrer des difficultés à distinguer les différentes variables
+et le pouvoir prédictif du modèle peut ainsi être biaisé (Japa et al.,
+2019). Nous réalisons donc une matrice de corrélation pour identifier
+les relations de dépendance entre les variables de notre jeu de données
+et ainsi détecter si certaines variables pourraient éventuellement être
+supprimer afin de limiter la redondance.
+
+```{r}
+library (tidyverse)
+library(ggcorrplot)
+
+dta[,-8] %>% cor() %>% round(1) %>% ggcorrplot(type = "lower", lab = TRUE)
+```
+
+On observe ici que les variables Potassium et Phosphore sont fortement
+corrélées entre elles avec un coefficient de corrélation égale à 0,7.
+
+### Modèle KNN simplifié
+
+Le modèle KNN est moins sensible aux corrélations entre les variables
+par rapport à la régression logistique. Cependant, si deux variables
+corrélées sont incluses dans le calcul des distances, cela peut biaiser
+la notion de proximité, car ces deux variables auront un poids plus
+important. Pour évaluer l'impact de cette redondance sur la performance
+de notre modèle KNN, nous allons procéder à l'élimination successive de
+la variable Phosphore en faveur du potassium, puis de potassium en
+faveur de potassium. Cette approche nous permettra de déterminer si la
+suppression de l'une de ces variables corrélées améliore la performance
+du modèle et réduit l'effet négatif d'une information redondante sur la
+précision des prédictions.
+
+```{r Suppression variables}
+## Suppression de la variable P
+
+data.trainP <- data.train[,-2]
+data.testP <- data.test[,-2]
+
+tuneGrid <- expand.grid(k = 1:20)
+
+set.seed(123)
+
+# Entraîner le modèle Knn avec la validation croisée
+knn_model <- train(label ~ .,
+                   data = data.trainP, 
+                   method = "knn", 
+                   tuneGrid = tuneGrid, ## test les valeurs de k de 1 à 20
+                   trControl = ctrl)
+
+# Meilleur k trouvé
+best_k <- knn_model$bestTune
+print(best_k)
+
+# Prédire avec le meilleur modèle
+pred_knn <- predict(knn_model, newdata = data.testP)
+
+# Accuracy
+conf_matrix <- confusionMatrix(pred_knn, data.testP$label)
+confusionMatrix(pred_knn, data.testP$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy)) ## Accuracy = 0.97
+
+## Suppression de la variable K
+
+data.trainP <- data.train[,-3]
+data.testP <- data.test[,-3]
+
+tuneGrid <- expand.grid(k = 1:20)
+
+set.seed(123)
+
+# Entraîner le modèle Knn avec la validation croisée
+knn_model <- train(label ~ .,
+                   data = data.trainP, 
+                   method = "knn", 
+                   tuneGrid = tuneGrid, ## test les valeurs de k de 1 à 20
+                   trControl = ctrl)
+
+# Meilleur k trouvé
+best_k <- knn_model$bestTune
+print(best_k)
+
+# Prédire avec le meilleur modèle
+pred_knn <- predict(knn_model, newdata = data.testP)
+
+# Accuracy
+conf_matrix <- confusionMatrix(pred_knn, data.testP$label)
+confusionMatrix(pred_knn, data.testP$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy)) ## Accuracy = 0.94
+```
+
+On observe ici que l'accuracy du modèle n'augmente pas lorsqu'on
+supprime les variables. Au contrairement, elle diminue, en particulier
+lorsqu'on supprime la variable potassium. Il est donc préférable de
+garder les deux variables dans le modèle.
+
+On va procéder à une sélection de variables afin de déterminer si toutes
+les variables sont intéressantes à garder pour la construction du modèle
+knn. Pour ce faire, nous allons utiliser la méthode RFE (Recursive
+Feature Elimination). La méthode RFE commence par entrainer le modèle
+knn sur l'ensemble complet des variables explicatives. Une fois le
+modèle entraîné, l'importance de chaque variable est évalué à l'aide
+d'une validation croisée. Pour ce faire, RFE regarde la variation de la
+performance du modèle lorsque chaque variable est retirée. Si la
+suppression d'une caractéristique entraîne une baisse significative de
+la performance, cela indique que cette caractéristique est importante.
+Inversement, si la performance reste relativement stable après la
+suppression d'une caractéristique, cela suggère que celle-ci a peu
+d'importance. Le processus d'entraînement, d'évaluation et d'élimination
+est répété jusqu'à ce l'élimination n'améliore plus la performance
+(Kuhn, 2019).
+
+```{r Sélection var}
+set.seed(123)
+
+# Évaluer l'importance des variables avec RFE
+rfe_ctrl <- rfeControl(functions = caretFuncs,
+                       method = "cv", 
+                       number = 10)
+
+# Effectuer l'élimination récursive des variables
+rfe_results <- rfe(data.train[, -ncol(data.train)], 
+                   data.train$label, 
+                   sizes = c(1:7),
+                   rfeControl = rfe_ctrl,
+                   method = "knn")
+
+# Résumé des résultats
+print(rfe_results)
+
+# Visualiser l'importance des variables
+plot(rfe_results, type = c("g", "o"))
+
+# Variables sélectionnées
+selected_vars <- predictors(rfe_results)
+print(selected_vars)
+```
+
+Ici, les variables les plus importantes sont : l'humidité, le taux de
+potassium, le taux de phosphore, le taux de nitrate et la température.
+Toutefois, ajouter la variable taux de précipitation semble intéressant
+pour avoir une accuracy maximale égale à 0,9807. Cette accuracy est très
+proche de l'accuracy du modèle prenant en compte toutes les variables.
+
+```{r Modèle simplifié}
+# Entrainement du modèle simplifié
+
+data.train_S <- data.train[,-6]
+data.test_S <- data.test[,-6]
+
+tuneGrid <- expand.grid(k = 1:20)
+
+set.seed(123)
+
+# Entraîner le modèle Knn avec la validation croisée
+knn_model_S <- train(label ~ .,
+                   data = data.train_S, 
+                   method = "knn", 
+                   tuneGrid = tuneGrid, ## test les valeurs de k de 1 à 20
+                   trControl = ctrl)
+
+# Meilleur k trouvé
+best_k <- knn_model_S$bestTune
+print(best_k)
+
+# Prédire avec le meilleur modèle
+pred_knn_S <- predict(knn_model_S, newdata = data.test_S)
+
+# Accuracy
+conf_matrix <- confusionMatrix(pred_knn_S, data.test_S$label)
+confusionMatrix(pred_knn_S, data.test_S$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy))
+```
 
 # Test de la capacité des modèles à différencier les cultures similaires
 
 ## Similarité entre les cultures
 
-Etant donné le grand nombre de culture, il est probable que certaines cultures soient très similaires en termes de caractéristiques mesurées. Par exemple, deux cultures qui se développent dans des conditions de sol et climatiques très proches pourraient partager des profils de sol quasi identiques. Cela rendrait difficile la distinction entre ces cultures pour le modèle.
+Etant donné le grand nombre de culture, il est probable que certaines
+cultures soient très similaires en termes de caractéristiques mesurées.
+Par exemple, deux cultures qui se développent dans des conditions de sol
+et climatiques très proches pourraient partager des profils de sol quasi
+identiques. Cela rendrait difficile la distinction entre ces cultures
+pour le modèle.
 
 ```{r}
 require(FactoMineR)
@@ -93,7 +339,10 @@ plot(resPCA2,habillage=8,label="quali")
 
 ## Choix de 5 cultures similaires suite à une classification ascendante hiérarchique
 
-Une classification ascendante hiérarchique est utilisée pour déterminer quelles cultures sont similaires. L'objectif est par la suite de choisir un sous-ensembles de cultures similaires pour évaluer la capacité des modèles à différencier les cultures similaires.
+Une classification ascendante hiérarchique est utilisée pour déterminer
+quelles cultures sont similaires. L'objectif est par la suite de choisir
+un sous-ensembles de cultures similaires pour évaluer la capacité des
+modèles à différencier les cultures similaires.
 
 ```{r CAH}
 library (FactoMineR)
@@ -113,36 +362,37 @@ print(table_clusters_label)
 res_HCPC$desc.var$quanti$`1`
 res_HCPC$desc.var$quanti$`2`
 res_HCPC$desc.var$quanti$`3` 
-
-resPCA2 <- PCA(dta[,-9], scale.unit = TRUE, quali.sup = 8)
-plot(resPCA2,habillage=8,label="quali")
 ```
 
-Nous obtenons ici trois cluster différents. Le premier cluster inclut les fruits tropicaux et les cultures de rente, tels que la banane, la noix de coco, et le café, qui prospèrent dans des conditions de sol humide, riche en azote, avec des précipitations importantes. Ces cultures sont adaptées à des climats tropicaux où l'abondance d'eau et un sol bien drainé sont essentiels pour une croissance optimale. Le deuxième cluster regroupe la mangue et les légumineuses comme les pois chiches, les haricots mungo. Ces plantes préfèrent un sol relativement pauvre en azote, bien drainé, et faiblement humide. Le dernier cluster comprend des cultures tempérées comme la pomme et le raisin, qui préfèrent un sol riche en potassium et en phosphore, mais pauvre en azote.
+Nous obtenons ici trois cluster différents. Le premier cluster inclut
+les fruits tropicaux et les cultures de rente, tels que la banane, la
+noix de coco, et le café, qui prospèrent dans des conditions de sol
+humide, riche en azote, avec des précipitations importantes. Ces
+cultures sont adaptées à des climats tropicaux où l'abondance d'eau et
+un sol bien drainé sont essentiels pour une croissance optimale. Le
+deuxième cluster regroupe la mangue et les légumineuses comme les pois
+chiches, les haricots mungo. Ces plantes préfèrent un sol relativement
+pauvre en azote, bien drainé, et faiblement humide. Le dernier cluster
+comprend des cultures tempérées comme la pomme et le raisin, qui
+préfèrent un sol riche en potassium et en phosphore, mais pauvre en
+azote.
 
-Nous avons sélectionné 5 cultures très similaires pour évaluer la capacité de prédiction de nos modèles dans le cas de situations où les cultures présentent des caractéristiques agronomiques et environnementales proches. L'objectif est de vérifier si les modèles peuvent encore discriminer correctement dans des contextes où les variations entre les cultures sont faibles, simulant ainsi des choix agricoles plus délicats à effectuer. Pour ce faire nous avons choisi les cultures suivantes : le jute, le riz, le maïs, le cotton et le café. Ces cultures prospèrent dans les climats tropicaux chauds et humides.
+Nous avons sélectionné 5 cultures très similaires pour évaluer la
+capacité de prédiction de nos modèles dans le cas de situations où les
+cultures présentent des caractéristiques agronomiques et
+environnementales proches. L'objectif est de vérifier si les modèles
+peuvent encore discriminer correctement dans des contextes où les
+variations entre les cultures sont faibles, simulant ainsi des choix
+agricoles plus délicats à effectuer. Pour ce faire nous avons choisi les
+cultures suivantes : le jute, le riz, le maïs, le cotton et le café.
 
 ## Prédiction avec le sous-ensemble de cultures similaires
 
-```{r Cultures similaires}
-# Modèle de régression logistique
+### Modèle KNN
 
-cultures_similaires <- c("coffee", "cotton", "maize", "rice", "jute")
+```{r Cultures similaires KNN}
 
-filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
-filtered_test_data <- droplevels(filtered_test_data)
-
-# Prédiction avec le sous-ensemble de culture
-pred_glm_filtered <- predict(glm_model, newdata = filtered_test_data)
-
-# Matrice de confusion et accuracy
-pred_glm_filtered <- factor(pred_glm_filtered, levels = levels(filtered_test_data$label))
-conf_matrix_filtered <- confusionMatrix(pred_glm_filtered, filtered_test_data$label)
-print(conf_matrix_filtered)
-accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
-
-# Modèle KNN
-
+# Modèle complet
 set.seed(123)
 
 cultures_similaires <- c("coffee", "cotton", "maize", "rice", "jute")
@@ -159,51 +409,74 @@ conf_matrix_filtered <- confusionMatrix(pred_knn_filtered, filtered_test_data$la
 print(conf_matrix_filtered)
 accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
 
-# Modèle Random Forest sur python
+# Modèle simplifié
+
+filtered_test_data_S <- data.test_S[data.test_S$label %in% cultures_similaires, ]
+filtered_test_data_S <- droplevels(filtered_test_data_S)
+
+# Prédiction avec le sous-ensemble de culture
+pred_knn_filtered_S <- predict(knn_model_S, newdata = filtered_test_data_S)
+
+# Matrice de confusion et accuracy
+pred_knn_filtered_S <- factor(pred_knn_filtered_S, levels = levels(filtered_test_data_S$label))
+conf_matrix_filtered_S <- confusionMatrix(pred_knn_filtered_S, filtered_test_data_S$label)
+print(conf_matrix_filtered_S)
+accuracy_filtered_S <- conf_matrix_filtered_S$overall['Accuracy']
 ```
 
-Nous pouvons constater que les accuracy liées aux modèles ont diminué. En effet, pour le modèle glm elle passe de 0,86 à 0,84. Pour le modèle KNN, elle diminue de 6%, passant de 0,98 à 0,92.
+Le modèle simplifié semble être légèrement plus performant que le modèle
+complet pour distinguer les cultures similaires avec une accuracy égale
+à 0,94 contre 0,93.
 
-En examinant plus en attentivement la matrice de confusion pour le modèle KNN, on observe quelques erreurs de prédiction, en particulier pour les classes maïs, jute, et riz. Bien que ces erreurs restent limitées, la classe riz est confondue avec la classe jute dans 25% des cas. Le modèle semble donc trouver des difficultés à différencier ces deux cultures. Malgré ces erreurs, le modèle knn présente une accuracy gravitant autour de 0,93. Nous pouvons donc conclure que le modèle discrimine efficacement les différentes cultures.
+Plusieurs métriques permettent de mieux comprendre la performance du
+modèle. Nous allons nous intéresser à la sensibilité et à la
+spécificité. La sensibilté indique la capacité du modèle à identifier
+correctement les échantillons appartenant à une classe spécifique. Elle
+prend la valeur la plus basse pour la classe jute avec une valeur de
+79%, indiquant que seulement 79 % des échantillons de jute ont été bien
+classés. La spécificité mesure la capacité du modèle à identifier
+correctement les échantillons qui n'appartiennent pas à une classe
+donnée. Elle est la plus faible pour la classe riz (0,94). On observe
+ici que le modèle complet confond les cultures riz et jute.
 
-Parler de la spécificité et de la sensibilité
+Les performances du modèle simplifié sont quasiment identique à celles
+du modèle complet. Le modèle simplifié possède un léger avantage sur la
+classe maïs en capturant 100 % des échantillons correctement. De plus,
+il est légèrement meilleur en termes de spécificité, avec une
+amélioration pour la classe cotton. Toutefois, le modèle simplifié
+confond de la même manière les classes jute et riz.
 
-Comparer les modèles entre eux et avec Random Forest
+### Modèle de régression logistique
 
-# Sélection des variables dans le modèle
+```{r Cultures similaires GLM}
+# Modèle de régression logistique
 
-## Corrélation entre les variables 
+cultures_similaires <- c("coffee", "cotton", "maize", "rice", "jute")
 
-```{r}
-library (tidyverse)
-library(ggcorrplot)
+filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
+filtered_test_data <- droplevels(filtered_test_data)
 
-dta[,-8] %>% cor() %>% round(1) %>% ggcorrplot(type = "lower", lab = TRUE)
+# Prédiction avec le sous-ensemble de culture
+pred_glm_filtered <- predict(glm_model, newdata = filtered_test_data)
+
+# Matrice de confusion et accuracy
+pred_glm_filtered <- factor(pred_glm_filtered, levels = levels(filtered_test_data$label))
+conf_matrix_filtered <- confusionMatrix(pred_glm_filtered, filtered_test_data$label)
+print(conf_matrix_filtered)
+accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
 ```
 
-## Importance des variables dans les modèles
-
-```{r Var}
-set.seed(123)
-
-# Évaluer l'importance des variables avec RFE
-rfe_ctrl <- rfeControl(functions = rfFuncs, # Pour Random Forest par exemple, cela peut aussi être "lmFuncs" pour la régression linéaire
-                       method = "cv", 
-                       number = 10)
-
-# Effectuer l'élimination récursive des variables
-rfe_results <- rfe(data.train[, -ncol(data.train)], data.train$label, 
-                   sizes = c(1:7),  # Teste toutes les tailles de 1 à 7
-                   rfeControl = rfe_ctrl)
-
-# Résumé des résultats
-print(rfe_results)
-
-# Visualiser l'importance des variables
-plot(rfe_results, type = c("g", "o"))
-
-# Variables sélectionnées
-selected_vars <- predictors(rfe_results)
-print(selected_vars)
-```
 # Conclusion
+
+Plot avec les différentes accuracy pour tous les modèles (complets et
+simplifiés)
+
+# Bibliographie
+
+<https://ieeexplore.ieee.org/abstract/document/9311735>
+
+<https://ieeexplore.ieee.org/abstract/document/9091741>
+
+<https://topepo.github.io/caret/recursive-feature-elimination.html>
+
+<https://link.springer.com/chapter/10.1007/978-3-030-12388-8_43>

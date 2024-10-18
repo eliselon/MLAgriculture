@@ -69,9 +69,7 @@ Les méthodes de machine learning envisagées pour cette étude comprennent un m
 
 En termes de perspectives, l’application de ces méthodes pourrait être étendue à d’autres régions géographiques et cultures, permettant une gestion plus fine et durable des ressources agricoles. De plus, l'intégration de méthodes plus avancées comme le deep learning, avec les réseaux de neurones multi-couches (MLP), ouvre des perspectives intéressantes pour améliorer encore la précision des recommandations.
 
-En termes de perspectives, l’application de ces méthodes pourrait être étendue à d’autres régions géographiques et cultures, permettant une gestion plus fine et durable des ressources agricoles. De plus, l'intégration de méthodes plus avancées comme le deep learning, avec les réseaux de neurones multi-couches (MLP), ouvre des perspectives intéressantes pour améliorer encore la précision des recommandations.
-
-**Mots-clés** : agriculture de précision, prédiction des cultures, KNN, random forest, échantillonnage
+**Mots-clés** : agriculture de précision, prédiction des cultures, KNN, random forest, régression logistique
 
 <p align="right">
 

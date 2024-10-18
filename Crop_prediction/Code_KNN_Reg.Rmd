@@ -1,0 +1,429 @@
+---
+title: "Prédictions de cultures"
+author: "Elise Lonchampt, Emma Da Costa Silva, Maud Lesage"
+date: "2024-10-12"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    number_sections: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Introduction
+
+## Présentation du jeu de données
+
+```{r importation jeu de données}
+dta <- read.table('Crop_recommendation.csv', sep = ';', header = TRUE, stringsAsFactors = TRUE)
+summary(dta)
+
+require(FactoMineR)
+resPCA2 <- PCA(dta, scale.unit = TRUE, quali.sup = 8)
+plot(resPCA2,habillage=8,label="quali")
+```
+
+# Prédiction de la meilleure culture pour un profil de sol donné
+
+## Modèles complets
+
+### Modèle de régression logistique
+
+```{r regression}
+require(class)
+require(caret)
+
+set.seed(123)
+
+trainIndex <- createDataPartition(dta$label, p = 0.75, list = FALSE)
+
+data.train <- dta[trainIndex, ]
+data.test <- dta[-trainIndex, ]
+
+ctrl <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
+
+# Entraîner le modèle regression avec la validation croisée
+reg_model <- train(label ~ ., data = data.train, method = "multinom", trControl = ctrl)
+
+# Prédire
+pred_reg <- predict(reg_model, newdata = data.test)
+
+# Accuracy
+conf_matrix <- confusionMatrix(pred_reg, data.test$label)
+confusionMatrix(pred_reg, data.test$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy))
+```
+
+### Modèle KNN
+
+```{r Knn}
+tuneGrid <- expand.grid(k = 1:20)
+
+set.seed(123)
+
+# Entraîner le modèle Knn avec la validation croisée
+knn_model <- train(label ~ .,
+                   data = data.train, 
+                   method = "knn", 
+                   tuneGrid = tuneGrid, ## test les valeurs de k de 1 à 20
+                   trControl = ctrl)
+
+# Meilleur k trouvé
+best_k <- knn_model$bestTune
+print(best_k)
+
+# Prédire avec le meilleur modèle
+pred_knn <- predict(knn_model, newdata = data.test)
+
+# Accuracy
+conf_matrix <- confusionMatrix(pred_knn, data.test$label)
+confusionMatrix(pred_knn, data.test$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy))
+```
+
+## Modèles simplifiés
+
+### Corrélation entre les variables
+
+```{r}
+library (tidyverse)
+library(ggcorrplot)
+
+dta[,-8] %>% cor() %>% round(1) %>% ggcorrplot(type = "lower", lab = TRUE) ## P et K corrélés
+```
+
+### Modèle de régression logistique simplifié
+
+```{r Supression variables regression}
+## Suppression de la variable P
+
+data.trainP <- data.train[,-2]
+data.testP <- data.test[,-2]
+
+set.seed(123)
+
+ctrl <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
+
+# Entraîner le modèle regression avec la validation croisée
+reg_model_P <- train(label ~ ., data = data.trainP, method = "multinom", trControl = ctrl)
+
+# Prédire
+pred_reg_P <- predict(reg_model_P, newdata = data.testP)
+
+# Accuracy
+conf_matrix_P <- confusionMatrix(pred_reg_P, data.testP$label)
+confusionMatrix(pred_reg_P, data.testP$label)
+accuracy_P <- conf_matrix_P$overall['Accuracy']
+print(paste("Accuracy: ", accuracy_P))
+
+
+## Suppression de la variable K
+
+data.trainK <- data.train[,-3]
+data.testK <- data.test[,-3]
+
+
+set.seed(123)
+
+# Entraîner le modèle Knn avec la validation croisée
+ctrl <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
+
+# Entraîner le modèle regression avec la validation croisée
+reg_model_K <- train(label ~ ., data = data.trainK, method = "multinom", trControl = ctrl)
+
+# Prédire
+pred_reg_K <- predict(reg_model_K, newdata = data.testK)
+
+# Accuracy
+conf_matrix_K <- confusionMatrix(pred_reg_K, data.testK$label)
+confusionMatrix(pred_reg_K, data.testK$label)
+accuracy_K <- conf_matrix_K$overall['Accuracy']
+print(paste("Accuracy: ", accuracy_K))
+```
+
+```{r Selection var regression}
+# Obtenir l'importance des variables
+importance <- varImp(reg_model, scale = FALSE)
+print(importance)
+
+library(nnet)
+# choix du meilleur modèle
+multinom_model <- multinom(label ~ ., data = data.train)
+
+# Appliquer la sélection pas à pas avec step()
+step_model <- step(multinom_model, direction = "both")
+
+# Afficher un résumé du modèle final après la sélection
+summary(step_model)
+
+# Entraîner le nouveau modèle regression avec la validation croisée
+reg_model_final <- train(label ~ P + K + humidity + rainfall, data = data.train, method = "multinom", trControl = ctrl)
+
+# Prédire
+pred_reg <- predict(reg_model_final, newdata = data.test)
+
+# Accuracy
+conf_matrix <- confusionMatrix(pred_reg, data.test$label)
+confusionMatrix(pred_reg, data.test$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy))
+```
+
+### Modèle KNN simplifié
+
+```{r Suppression variables}
+## Suppression de la variable P
+
+data.trainP <- data.train[,-2]
+data.testP <- data.test[,-2]
+
+tuneGrid <- expand.grid(k = 1:20)
+
+set.seed(123)
+
+# Entraîner le modèle Knn avec la validation croisée
+knn_model_P <- train(label ~ .,
+                   data = data.trainP, 
+                   method = "knn", 
+                   tuneGrid = tuneGrid, ## test les valeurs de k de 1 à 20
+                   trControl = ctrl)
+
+# Meilleur k trouvé
+best_k <- knn_model_P$bestTune
+print(best_k)
+
+# Prédire avec le meilleur modèle
+pred_knn_P <- predict(knn_model_P, newdata = data.testP)
+
+# Accuracy
+conf_matrix_P <- confusionMatrix(pred_knn_P, data.testP$label)
+confusionMatrix(pred_knn_P, data.testP$label)
+accuracy_P <- conf_matrix_P$overall['Accuracy']
+print(paste("Accuracy: ", accuracy_P)) ## Accuracy = 0.97
+
+## Suppression de la variable K
+
+data.trainK <- data.train[,-3]
+data.testK <- data.test[,-3]
+
+tuneGrid <- expand.grid(k = 1:20)
+
+set.seed(123)
+
+# Entraîner le modèle Knn avec la validation croisée
+knn_model_K <- train(label ~ .,
+                   data = data.trainK, 
+                   method = "knn", 
+                   tuneGrid = tuneGrid, ## test les valeurs de k de 1 à 20
+                   trControl = ctrl)
+
+# Meilleur k trouvé
+best_k <- knn_model_K$bestTune
+print(best_k)
+
+# Prédire avec le meilleur modèle
+pred_knn_K <- predict(knn_model_K, newdata = data.testK)
+
+# Accuracy
+conf_matrix_K <- confusionMatrix(pred_knn_K, data.testK$label)
+confusionMatrix(pred_knn_K, data.testK$label)
+accuracy_K <- conf_matrix_K$overall['Accuracy']
+print(paste("Accuracy: ", accuracy_K)) ## Accuracy = 0.94
+```
+
+```{r Sélection var knn}
+set.seed(123)
+
+# Évaluer l'importance des variables avec RFE
+rfe_ctrl <- rfeControl(functions = caretFuncs,
+                       method = "cv", 
+                       number = 10)
+
+# Effectuer l'élimination récursive des variables
+rfe_results <- rfe(data.train[, -ncol(data.train)], 
+                   data.train$label, 
+                   sizes = c(1:7),
+                   rfeControl = rfe_ctrl,
+                   method = "knn")
+
+# Résumé des résultats
+print(rfe_results)
+
+# Visualiser l'importance des variables
+plot(rfe_results, type = c("g", "o"))
+
+# Variables sélectionnées
+selected_vars <- predictors(rfe_results)
+print(selected_vars)
+
+# Entrainement du modèle simplifié
+
+data.train_S <- data.train[,-6]
+data.test_S <- data.test[,-6]
+
+tuneGrid <- expand.grid(k = 1:20)
+
+set.seed(123)
+
+# Entraîner le modèle Knn avec la validation croisée
+knn_model_S <- train(label ~ .,
+                   data = data.train_S, 
+                   method = "knn", 
+                   tuneGrid = tuneGrid, ## test les valeurs de k de 1 à 20
+                   trControl = ctrl)
+
+# Meilleur k trouvé
+best_k <- knn_model_S$bestTune
+print(best_k)
+
+# Prédire avec le meilleur modèle
+pred_knn_S <- predict(knn_model_S, newdata = data.test_S)
+
+# Accuracy
+conf_matrix <- confusionMatrix(pred_knn_S, data.test_S$label)
+confusionMatrix(pred_knn_S, data.test_S$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy))
+```
+
+# Test de la capacité des modèles à différencier les cultures similaires
+
+## Choix de 5 cultures similaires suite à une classification ascendante hiérarchique
+
+```{r CAH}
+library (FactoMineR)
+
+res_PCA <- PCA(dta[,-8], scale.unit = TRUE)
+
+res_HCPC <- HCPC(res_PCA, nb.clust = 3) ## 3 clusters
+
+dta2 <- dta
+dta2$clust <- res_HCPC$data.clust$clust
+table_clusters_label <- table(dta2$label, dta2$clust)
+print(table_clusters_label)
+## Cluster 1 = Banana, Coconut, Coffee, Cotton, Jute, Maize, Muskmelon, Orange, Papaya, Pomegrade, Rice, Watermelon
+## Cluster 2 = Blackgram, Chickpea, Kidneybeans, Lentil, Mango, Mothbeans, Mungbean, Pigeonpeas
+## Cluster 3 = Apple, Grapes
+
+res_HCPC$desc.var$quanti$`1`
+res_HCPC$desc.var$quanti$`2`
+res_HCPC$desc.var$quanti$`3` 
+
+## Graphique
+require (factoextra)
+require(ggrepel)
+centres_cultures <- aggregate(res_PCA$ind$coord, by = list(culture = dta$label), FUN = mean)
+
+fviz_cluster(res_HCPC, 
+             geom = "point", 
+             ellipse.type = "convex", 
+             palette = c("#B3CDE3", "#CCEBC5", "#FFD580"),  # Couleurs plus claires
+             ggtheme = theme_minimal(), 
+             main = "Clusters avec centres de gravité des cultures") +
+  
+  # Ajouter les centres de gravité en points noirs plus petits
+  geom_point(data = centres_cultures, aes(x = Dim.1, y = Dim.2), 
+             color = "black", size = 2, shape = 16) +  # 'shape = 16' pour un point plein et 'size = 1.5' pour réduire la taille
+             
+  # Afficher les noms des cultures sans chevauchement
+  geom_text_repel(data = centres_cultures, aes(x = Dim.1, y = Dim.2, label = culture), 
+                  color = "black", 
+                  size = 4,  # Taille des étiquettes
+                  max.overlaps = 10)
+```
+
+## Prédiction avec le sous-ensemble de cultures similaires
+
+### Modèle de régression logistique
+
+```{r Cultures similaires regression}
+# Modèle de régression logistique
+
+cultures_similaires <- c("coffee", "cotton", "maize", "rice", "jute")
+
+filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
+filtered_test_data <- droplevels(filtered_test_data)
+
+# Prédiction avec le sous-ensemble de culture
+pred_reg_filtered <- predict(reg_model, newdata = filtered_test_data)
+
+# Matrice de confusion et accuracy
+pred_reg_filtered <- factor(pred_reg_filtered, levels = levels(filtered_test_data$label))
+conf_matrix_filtered <- confusionMatrix(pred_reg_filtered, filtered_test_data$label)
+print(conf_matrix_filtered)
+accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+
+## Modèle simplifié 
+
+pred_reg_filtered <- predict(reg_model_final, newdata = filtered_test_data)
+
+# Matrice de confusion et accuracy
+pred_reg_filtered <- factor(pred_reg_filtered, levels = levels(filtered_test_data$label))
+conf_matrix_filtered <- confusionMatrix(pred_reg_filtered, filtered_test_data$label)
+print(conf_matrix_filtered)
+accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+accuracy_filtered
+```
+
+### Modèle KNN
+
+```{r Cultures similaires KNN}
+
+# Modèle complet
+set.seed(123)
+
+cultures_similaires <- c("coffee", "cotton", "maize", "rice", "jute")
+
+filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
+filtered_test_data <- droplevels(filtered_test_data)
+
+# Prédiction avec le sous-ensemble de culture
+pred_knn_filtered <- predict(knn_model, newdata = filtered_test_data)
+
+# Matrice de confusion et accuracy
+pred_knn_filtered <- factor(pred_knn_filtered, levels = levels(filtered_test_data$label))
+conf_matrix_filtered <- confusionMatrix(pred_knn_filtered, filtered_test_data$label)
+print(conf_matrix_filtered)
+accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+
+# Modèle simplifié
+
+filtered_test_data_S <- data.test_S[data.test_S$label %in% cultures_similaires, ]
+filtered_test_data_S <- droplevels(filtered_test_data_S)
+
+# Prédiction avec le sous-ensemble de culture
+pred_knn_filtered_S <- predict(knn_model_S, newdata = filtered_test_data_S)
+
+# Matrice de confusion et accuracy
+pred_knn_filtered_S <- factor(pred_knn_filtered_S, levels = levels(filtered_test_data_S$label))
+conf_matrix_filtered_S <- confusionMatrix(pred_knn_filtered_S, filtered_test_data_S$label)
+print(conf_matrix_filtered_S)
+accuracy_filtered_S <- conf_matrix_filtered_S$overall['Accuracy']
+```
+
+# Conclusion
+
+```{r}
+## Graphique : 
+library(ggplot2)
+
+model_data <- data.frame(
+  Model = c("Modèle régression complet", "Modèle régression selectionné", "Modèle knn complet", "Modèle knn sélectionné", "Modèle random forest complet", "Modèle random forest sélectionné"),
+  Accuracy = c(0.85, 0.94, 0.98, 0.98, 0.99, 0.99))
+
+ggplot(model_data, aes(x = Model, y = Accuracy, fill = Model)) +
+  geom_bar(stat = "identity", width = 0.5) +  # Afficher un bar plot
+  scale_fill_manual(values = c("#0057D9", "#B3CDE3", "#3DAA37", "#A8D5BA", "#FFA500", "#FFDAB9")) +  # Couleurs personnalisées
+  geom_text(aes(label = Accuracy), vjust = -0.5, size = 4) +  # Afficher les valeurs sur les barres
+  ylim(0, 1) +  # Limiter l'axe des y entre 0 et 1 (pourcentage)
+  labs(title = "Comparaison de l'Accuracy des différents modèles", 
+       x = "Modèle", 
+       y = "Accuracy") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 5))  # Orientation des étiquettes
+```

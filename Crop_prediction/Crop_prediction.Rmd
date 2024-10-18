@@ -45,9 +45,10 @@ plot(resPCA2,habillage=8,label="quali")
 ```
 
 Le jeu de données inclut 2200 observations réparties sur huit variables
-: sept variables physico-chimiques des sols et une variable décrivant le
-type de culture adaptée. On a ici 100 observations par culture, le jeu
-de données est donc équilibré.
+
+:   sept variables physico-chimiques des sols et une variable décrivant
+    le type de culture adaptée. On a ici 100 observations par culture,
+    le jeu de données est donc équilibré.
 
 # Prédiction de la meilleure culture pour un profil de sol donné
 
@@ -55,7 +56,7 @@ de données est donc équilibré.
 
 ### Modèle de régression logistique
 
-```{r GLM}
+```{r regression}
 require(class)
 require(caret)
 
@@ -68,15 +69,15 @@ data.test <- dta[-trainIndex, ]
 
 ctrl <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
 
-# Entraîner le modèle glm avec la validation croisée
-glm_model <- train(label ~ ., data = data.train, method = "multinom", trControl = ctrl)
+# Entraîner le modèle regression avec la validation croisée
+reg_model <- train(label ~ ., data = data.train, method = "multinom", trControl = ctrl)
 
 # Prédire
-pred_glm <- predict(glm_model, newdata = data.test)
+pred_reg <- predict(reg_model, newdata = data.test)
 
 # Accuracy
-conf_matrix <- confusionMatrix(pred_glm, data.test$label)
-confusionMatrix(pred_glm, data.test$label)
+conf_matrix <- confusionMatrix(pred_reg, data.test$label)
+confusionMatrix(pred_reg, data.test$label)
 accuracy <- conf_matrix$overall['Accuracy']
 print(paste("Accuracy: ", accuracy))
 ```
@@ -162,6 +163,83 @@ dta[,-8] %>% cor() %>% round(1) %>% ggcorrplot(type = "lower", lab = TRUE)
 On observe ici que les variables Potassium et Phosphore sont fortement
 corrélées entre elles avec un coefficient de corrélation égale à 0,7.
 
+### Modèle de régression logistique simplifié
+
+```{r Supression variables regression}
+## Suppression de la variable P
+
+data.trainP <- data.train[,-2]
+data.testP <- data.test[,-2]
+
+set.seed(123)
+
+ctrl <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
+
+# Entraîner le modèle regression avec la validation croisée
+reg_model_P <- train(label ~ ., data = data.trainP, method = "multinom", trControl = ctrl)
+
+# Prédire
+pred_reg_P <- predict(reg_model_P, newdata = data.testP)
+
+# Accuracy
+conf_matrix_P <- confusionMatrix(pred_reg_P, data.testP$label)
+confusionMatrix(pred_reg_P, data.testP$label)
+accuracy_P <- conf_matrix_P$overall['Accuracy']
+print(paste("Accuracy: ", accuracy_P))
+
+
+## Suppression de la variable K
+
+data.trainK <- data.train[,-3]
+data.testK <- data.test[,-3]
+
+
+set.seed(123)
+
+# Entraîner le modèle Knn avec la validation croisée
+ctrl <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
+
+# Entraîner le modèle regression avec la validation croisée
+reg_model_K <- train(label ~ ., data = data.trainK, method = "multinom", trControl = ctrl)
+
+# Prédire
+pred_reg_K <- predict(reg_model_K, newdata = data.testK)
+
+# Accuracy
+conf_matrix_K <- confusionMatrix(pred_reg_K, data.testK$label)
+confusionMatrix(pred_reg_K, data.testK$label)
+accuracy_K <- conf_matrix_K$overall['Accuracy']
+print(paste("Accuracy: ", accuracy_K))
+```
+
+```{r Selection var regression}
+# Obtenir l'importance des variables
+importance <- varImp(reg_model, scale = FALSE)
+print(importance)
+
+library(nnet)
+# choix du meilleur modèle
+multinom_model <- multinom(label ~ ., data = data.train)
+
+# Appliquer la sélection pas à pas avec step()
+step_model <- step(multinom_model, direction = "both")
+
+# Afficher un résumé du modèle final après la sélection
+summary(step_model)
+
+# Entraîner le nouveau modèle regression avec la validation croisée
+reg_model_final <- train(label ~ P + K + humidity + rainfall, data = data.train, method = "multinom", trControl = ctrl)
+
+# Prédire
+pred_reg <- predict(reg_model_final, newdata = data.test)
+
+# Accuracy
+conf_matrix <- confusionMatrix(pred_reg, data.test$label)
+confusionMatrix(pred_reg, data.test$label)
+accuracy <- conf_matrix$overall['Accuracy']
+print(paste("Accuracy: ", accuracy))
+```
+
 ### Modèle KNN simplifié
 
 Le modèle KNN est moins sensible aux corrélations entre les variables
@@ -170,8 +248,8 @@ corrélées sont incluses dans le calcul des distances, cela peut biaiser
 la notion de proximité, car ces deux variables auront un poids plus
 important. Pour évaluer l'impact de cette redondance sur la performance
 de notre modèle KNN, nous allons procéder à l'élimination successive de
-la variable Phosphore en faveur du potassium, puis de potassium en
-faveur de potassium. Cette approche nous permettra de déterminer si la
+la variable Phosphore en faveur du Potassium, puis de Potassium en
+faveur de Phosphore. Cette approche nous permettra de déterminer si la
 suppression de l'une de ces variables corrélées améliore la performance
 du modèle et réduit l'effet négatif d'une information redondante sur la
 précision des prédictions.
@@ -187,53 +265,53 @@ tuneGrid <- expand.grid(k = 1:20)
 set.seed(123)
 
 # Entraîner le modèle Knn avec la validation croisée
-knn_model <- train(label ~ .,
+knn_model_P <- train(label ~ .,
                    data = data.trainP, 
                    method = "knn", 
                    tuneGrid = tuneGrid, ## test les valeurs de k de 1 à 20
                    trControl = ctrl)
 
 # Meilleur k trouvé
-best_k <- knn_model$bestTune
+best_k <- knn_model_P$bestTune
 print(best_k)
 
 # Prédire avec le meilleur modèle
-pred_knn <- predict(knn_model, newdata = data.testP)
+pred_knn_P <- predict(knn_model_P, newdata = data.testP)
 
 # Accuracy
-conf_matrix <- confusionMatrix(pred_knn, data.testP$label)
-confusionMatrix(pred_knn, data.testP$label)
-accuracy <- conf_matrix$overall['Accuracy']
-print(paste("Accuracy: ", accuracy)) ## Accuracy = 0.97
+conf_matrix_P <- confusionMatrix(pred_knn_P, data.testP$label)
+confusionMatrix(pred_knn_P, data.testP$label)
+accuracy_P <- conf_matrix_P$overall['Accuracy']
+print(paste("Accuracy: ", accuracy_P)) ## Accuracy = 0.97
 
 ## Suppression de la variable K
 
-data.trainP <- data.train[,-3]
-data.testP <- data.test[,-3]
+data.trainK <- data.train[,-3]
+data.testK <- data.test[,-3]
 
 tuneGrid <- expand.grid(k = 1:20)
 
 set.seed(123)
 
 # Entraîner le modèle Knn avec la validation croisée
-knn_model <- train(label ~ .,
-                   data = data.trainP, 
+knn_model_K <- train(label ~ .,
+                   data = data.trainK, 
                    method = "knn", 
                    tuneGrid = tuneGrid, ## test les valeurs de k de 1 à 20
                    trControl = ctrl)
 
 # Meilleur k trouvé
-best_k <- knn_model$bestTune
+best_k <- knn_model_K$bestTune
 print(best_k)
 
 # Prédire avec le meilleur modèle
-pred_knn <- predict(knn_model, newdata = data.testP)
+pred_knn_K <- predict(knn_model_K, newdata = data.testK)
 
 # Accuracy
-conf_matrix <- confusionMatrix(pred_knn, data.testP$label)
-confusionMatrix(pred_knn, data.testP$label)
-accuracy <- conf_matrix$overall['Accuracy']
-print(paste("Accuracy: ", accuracy)) ## Accuracy = 0.94
+conf_matrix_K <- confusionMatrix(pred_knn_K, data.testK$label)
+confusionMatrix(pred_knn_K, data.testK$label)
+accuracy_K <- conf_matrix_K$overall['Accuracy']
+print(paste("Accuracy: ", accuracy_K)) ## Accuracy = 0.94
 ```
 
 On observe ici que l'accuracy du modèle n'augmente pas lorsqu'on
@@ -257,7 +335,7 @@ d'importance. Le processus d'entraînement, d'évaluation et d'élimination
 est répété jusqu'à ce l'élimination n'améliore plus la performance
 (Kuhn, 2019).
 
-```{r Sélection var}
+```{r Sélection var knn}
 set.seed(123)
 
 # Évaluer l'importance des variables avec RFE
@@ -320,6 +398,7 @@ accuracy <- conf_matrix$overall['Accuracy']
 print(paste("Accuracy: ", accuracy))
 ```
 
+
 # Test de la capacité des modèles à différencier les cultures similaires
 
 ## Similarité entre les cultures
@@ -362,6 +441,28 @@ print(table_clusters_label)
 res_HCPC$desc.var$quanti$`1`
 res_HCPC$desc.var$quanti$`2`
 res_HCPC$desc.var$quanti$`3` 
+
+## Graphique
+require (factoextra)
+require(ggrepel)
+centres_cultures <- aggregate(res_PCA$ind$coord, by = list(culture = dta$label), FUN = mean)
+
+fviz_cluster(res_HCPC, 
+             geom = "point", 
+             ellipse.type = "convex", 
+             palette = c("#B3CDE3", "#CCEBC5", "#FFD580"),  # Couleurs plus claires
+             ggtheme = theme_minimal(), 
+             main = "Clusters avec centres de gravité des cultures") +
+  
+  # Ajouter les centres de gravité en points noirs plus petits
+  geom_point(data = centres_cultures, aes(x = Dim.1, y = Dim.2), 
+             color = "black", size = 2, shape = 16) +  # 'shape = 16' pour un point plein et 'size = 1.5' pour réduire la taille
+             
+  # Afficher les noms des cultures sans chevauchement
+  geom_text_repel(data = centres_cultures, aes(x = Dim.1, y = Dim.2, label = culture), 
+                  color = "black", 
+                  size = 4,  # Taille des étiquettes
+                  max.overlaps = 10)
 ```
 
 Nous obtenons ici trois cluster différents. Le premier cluster inclut
@@ -443,12 +544,12 @@ Les performances du modèle simplifié sont quasiment identique à celles
 du modèle complet. Le modèle simplifié possède un léger avantage sur la
 classe maïs en capturant 100 % des échantillons correctement. De plus,
 il est légèrement meilleur en termes de spécificité, avec une
-amélioration pour la classe cotton. Toutefois, le modèle simplifié
+amélioration pour la classe coton. Toutefois, le modèle simplifié
 confond de la même manière les classes jute et riz.
 
 ### Modèle de régression logistique
 
-```{r Cultures similaires GLM}
+```{r Cultures similaires regression}
 # Modèle de régression logistique
 
 cultures_similaires <- c("coffee", "cotton", "maize", "rice", "jute")
@@ -457,19 +558,48 @@ filtered_test_data <- data.test[data.test$label %in% cultures_similaires, ]
 filtered_test_data <- droplevels(filtered_test_data)
 
 # Prédiction avec le sous-ensemble de culture
-pred_glm_filtered <- predict(glm_model, newdata = filtered_test_data)
+pred_reg_filtered <- predict(reg_model, newdata = filtered_test_data)
 
 # Matrice de confusion et accuracy
-pred_glm_filtered <- factor(pred_glm_filtered, levels = levels(filtered_test_data$label))
-conf_matrix_filtered <- confusionMatrix(pred_glm_filtered, filtered_test_data$label)
+pred_reg_filtered <- factor(pred_reg_filtered, levels = levels(filtered_test_data$label))
+conf_matrix_filtered <- confusionMatrix(pred_reg_filtered, filtered_test_data$label)
 print(conf_matrix_filtered)
 accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+
+## Modèle simplifié 
+
+pred_reg_filtered <- predict(reg_model_final, newdata = filtered_test_data)
+
+# Matrice de confusion et accuracy
+pred_reg_filtered <- factor(pred_reg_filtered, levels = levels(filtered_test_data$label))
+conf_matrix_filtered <- confusionMatrix(pred_reg_filtered, filtered_test_data$label)
+print(conf_matrix_filtered)
+accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+accuracy_filtered
 ```
 
 # Conclusion
 
-Plot avec les différentes accuracy pour tous les modèles (complets et
-simplifiés)
+```{r}
+## Graphique : 
+library(ggplot2)
+
+model_data <- data.frame(
+  Model = c("Modèle régression complet", "Modèle régression selectionné", "Modèle knn complet", "Modèle knn sélectionné", "Modèle random forest complet", "Modèle random forest sélectionné"),
+  Accuracy = c(0.85, 0.94, 0.98, 0.98, 0.99, 0.99))
+
+ggplot(model_data, aes(x = Model, y = Accuracy, fill = Model)) +
+  geom_bar(stat = "identity", width = 0.5) +  # Afficher un bar plot
+  scale_fill_manual(values = c("#0057D9", "#B3CDE3", "#3DAA37", "#A8D5BA", "#FFA500", "#FFDAB9")) +  # Couleurs personnalisées
+  geom_text(aes(label = Accuracy), vjust = -0.5, size = 4) +  # Afficher les valeurs sur les barres
+  ylim(0, 1) +  # Limiter l'axe des y entre 0 et 1 (pourcentage)
+  labs(title = "Comparaison de l'Accuracy des différents modèles", 
+       x = "Modèle", 
+       y = "Accuracy") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 5))  # Orientation des étiquettes
+
+```
 
 # Bibliographie
 

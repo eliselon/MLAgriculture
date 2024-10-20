@@ -115,7 +115,7 @@ Le jeu de données utilisé pour ce projet provient de [source de données] (ajo
 
 README.md : Ce fichier, document expliquant le projet, ses objectifs et sa structure
 
-diapo.pptx : Présentation PowerPoint du projet
+diapo_Agriculture_precision.pptx : Présentation PowerPoint du projet
 
 Conference_abstract.docx : Résumé de cette contribution à la conférence
 
@@ -125,9 +125,7 @@ Crop_prediction/ : Dossier contenant les scripts liés aux prédictions de cultu
 
 -   Crop_prediction.Rproj : Fichier de projet RStudio définissant l'environnement de travail pour les scripts R
 
--   Crop_prediction.Rmd : Script Markdown R pour la prédiction et l'analyse des données
-
--   Crop_prediction.html : Version HTML généré à partir de Crop_prediction.Rmd
+-   Code_Knn_reg.Rmd : Script Markdown R pour la prédiction et l'analyse des données
 
 -   random_forest.py : Script Python pour l'entraînement et l'évaluation du modèle Random Forest généré via Google Colab
 

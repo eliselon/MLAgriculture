@@ -43,10 +43,10 @@ trainIndex <- createDataPartition(dta$label, p = 0.75, list = FALSE)
 data.train <- dta[trainIndex, ]
 data.test <- dta[-trainIndex, ]
 
-ctrl <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
+ctrl <- trainControl(method = "cv", number = 10, ) # 10-fold cross-validation
 
 # Entraîner le modèle regression avec la validation croisée
-reg_model <- train(label ~ ., data = data.train, method = "multinom", trControl = ctrl)
+reg_model <- train(label ~ ., data = data.train, method = "multinom", trControl = ctrl, maxit=1000)
 
 # Prédire
 pred_reg <- predict(reg_model, newdata = data.test)
@@ -110,7 +110,7 @@ set.seed(123)
 ctrl <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
 
 # Entraîner le modèle regression avec la validation croisée
-reg_model_P <- train(label ~ ., data = data.trainP, method = "multinom", trControl = ctrl)
+reg_model_P <- train(label ~ ., data = data.trainP, method = "multinom", trControl = ctrl, maxit = 1000)
 
 # Prédire
 pred_reg_P <- predict(reg_model_P, newdata = data.testP)
@@ -134,7 +134,7 @@ set.seed(123)
 ctrl <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
 
 # Entraîner le modèle regression avec la validation croisée
-reg_model_K <- train(label ~ ., data = data.trainK, method = "multinom", trControl = ctrl)
+reg_model_K <- train(label ~ ., data = data.trainK, method = "multinom", trControl = ctrl, maxit = 1000)
 
 # Prédire
 pred_reg_K <- predict(reg_model_K, newdata = data.testK)
@@ -153,7 +153,7 @@ print(importance)
 
 library(nnet)
 # choix du meilleur modèle
-multinom_model <- multinom(label ~ ., data = data.train)
+multinom_model <- multinom(label ~ ., data = data.train, maxit = 1000)
 
 # Appliquer la sélection pas à pas avec step()
 step_model <- step(multinom_model, direction = "both")
@@ -162,7 +162,7 @@ step_model <- step(multinom_model, direction = "both")
 summary(step_model)
 
 # Entraîner le nouveau modèle regression avec la validation croisée
-reg_model_final <- train(label ~ P + K + humidity + rainfall, data = data.train, method = "multinom", trControl = ctrl)
+reg_model_final <- train(label ~ P + K + humidity + rainfall, data = data.train, method = "multinom", trControl = ctrl, maxit = 1000)
 
 # Prédire
 pred_reg <- predict(reg_model_final, newdata = data.test)
@@ -357,6 +357,7 @@ pred_reg_filtered <- factor(pred_reg_filtered, levels = levels(filtered_test_dat
 conf_matrix_filtered <- confusionMatrix(pred_reg_filtered, filtered_test_data$label)
 print(conf_matrix_filtered)
 accuracy_filtered <- conf_matrix_filtered$overall['Accuracy']
+accuracy_filtered
 
 ## Modèle simplifié 
 
@@ -414,7 +415,7 @@ library(ggplot2)
 
 model_data <- data.frame(
   Model = c("Modèle régression complet", "Modèle régression selectionné", "Modèle knn complet", "Modèle knn sélectionné", "Modèle random forest complet", "Modèle random forest sélectionné"),
-  Accuracy = c(0.85, 0.94, 0.98, 0.98, 0.99, 0.99))
+  Accuracy = c(0.97, 0.95, 0.98, 0.98, 0.99, 0.99))
 
 ggplot(model_data, aes(x = Model, y = Accuracy, fill = Model)) +
   geom_bar(stat = "identity", width = 0.5) +  # Afficher un bar plot
@@ -426,4 +427,6 @@ ggplot(model_data, aes(x = Model, y = Accuracy, fill = Model)) +
        y = "Accuracy") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 5))  # Orientation des étiquettes
+
+
 ```

@@ -115,7 +115,7 @@ Le jeu de données utilisé pour ce projet provient de [source de données] (ajo
 
 README.md : Ce fichier, document expliquant le projet, ses objectifs et sa structure
 
-diapo_Agriculture_precision.pptx : Présentation PowerPoint du projet
+diapo_Agriculture_precision.pdf : Présentation PowerPoint du projet
 
 Conference_abstract.docx : Résumé de cette contribution à la conférence
 
